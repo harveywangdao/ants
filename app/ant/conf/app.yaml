@@ -1,0 +1,20 @@
+# app config
+log:
+  logPath: /data/log/ant
+  logLevel: info
+
+etcd:
+  endpoints:
+    - 192.168.1.7:2379
+    - 192.168.1.10:2379
+    - 192.168.1.11:2379
+
+server:
+  name: ant01
+  port: 6068
+
+httpServer:
+  port: 4582
+
+client:
+  antServiceName: ant01
