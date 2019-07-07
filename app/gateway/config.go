@@ -28,7 +28,8 @@ type ServerConfig struct {
 }
 
 type HttpServerConfig struct {
-	Port string `yaml:"port" json:"port"`
+	Port      string `yaml:"port" json:"port"`
+	PrefixUrl string `yaml:"prefixUrl" json:"prefixUrl"`
 }
 
 type ClientConfig struct {
@@ -57,7 +58,7 @@ func initConfig() error {
 	}
 
 	data, _ := json.Marshal(&config)
-	logger.Debug("config:", string(data))
+	logger.Info("config:", string(data))
 	return nil
 }
 

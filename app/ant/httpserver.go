@@ -1,7 +1,7 @@
 package main
 
 import (
-	"ants/logger"
+	"github.com/harveywangdao/ants/logger"
 	"net/http"
 	"time"
 )

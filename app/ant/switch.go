@@ -1,11 +1,11 @@
 package main
 
 import (
-	"ants/logger"
-	antpb "ants/rpc/ant"
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/harveywangdao/ants/logger"
+	antpb "github.com/harveywangdao/ants/rpc/ant"
 	"io/ioutil"
 	"net/http"
 	"strings"

@@ -1,9 +1,9 @@
 package main
 
 import (
-	"ants/logger"
-	"ants/register"
-	"ants/register/discovery"
+	"github.com/harveywangdao/ants/logger"
+	"github.com/harveywangdao/ants/register"
+	"github.com/harveywangdao/ants/register/discovery"
 	"log"
 	"time"
 )
@@ -38,13 +38,13 @@ func main() {
 	}
 
 	go AntSaySvcStart(getConf().Server.Port)
-	go StartHttpServer(getConf().HttpServer.Port, getConf().Server.Name, "Hello", HelloHandler)
+	//go StartHttpServer(getConf().HttpServer.Port, getConf().Server.Name, "Hello", HelloHandler)
 	time.Sleep(time.Second)
 	go ClientStart(dis, getConf().Client.AntServiceName)
-	go StartHttpClient("192.168.1.7", getConf().HttpServer.Port, getConf().Server.Name, "Hello")
+	//go StartHttpClient("192.168.1.7", getConf().HttpServer.Port, getConf().Server.Name, "Hello")
 
 	for {
-		time.Sleep(time.Second)
+		time.Sleep(5 * time.Second)
 
 		/*
 			ipports, err := dis.QueryServiceIpPort(getConf().Server.Name)

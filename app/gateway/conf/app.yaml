@@ -1,0 +1,21 @@
+# app config
+log:
+  logPath: /data/log/gateway
+  logLevel: info
+
+etcd:
+  endpoints:
+    - 192.168.1.7:2379
+    - 192.168.1.10:2379
+    - 192.168.1.11:2379
+
+server:
+  name: gateway
+  port: 8081
+
+httpServer:
+  port: 8080
+  prefixUrl: /v1/gateway
+
+client:
+  antServiceName: ant01

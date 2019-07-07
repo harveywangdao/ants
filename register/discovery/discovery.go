@@ -1,12 +1,12 @@
 package discovery
 
 import (
-	"ants/logger"
-	"ants/register"
 	"context"
 	"encoding/json"
 	"errors"
 	"github.com/coreos/etcd/clientv3"
+	"github.com/harveywangdao/ants/logger"
+	"github.com/harveywangdao/ants/register"
 	"time"
 )
 

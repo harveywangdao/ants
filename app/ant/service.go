@@ -1,10 +1,11 @@
 package main
 
 import (
-	"ants/logger"
-	antpb "ants/rpc/ant"
 	"context"
+	"github.com/harveywangdao/ants/logger"
+	antpb "github.com/harveywangdao/ants/rpc/ant"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
 	"net"
 	"time"
 )
@@ -25,6 +26,8 @@ func AntSaySvcStart(port string) {
 
 	s := grpc.NewServer()
 	antpb.RegisterAntSayServer(s, &AntSaySvc{})
+
+	reflection.Register(s)
 
 	if err := s.Serve(lis); err != nil {
 		logger.Error("service halt! error:", err)

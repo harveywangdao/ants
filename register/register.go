@@ -1,11 +1,11 @@
 package register
 
 import (
-	"ants/logger"
-	"ants/util"
 	"context"
 	"encoding/json"
 	"github.com/coreos/etcd/clientv3"
+	"github.com/harveywangdao/ants/logger"
+	"github.com/harveywangdao/ants/util"
 	"net"
 	"strings"
 	"time"
@@ -89,9 +89,13 @@ func GetLocalIp3() string {
 	defer conn.Close()
 
 	localAddr := conn.LocalAddr().String()
-	logger.Info("localAddr", localAddr)
+	logger.Debug("localAddr", localAddr)
 	idx := strings.LastIndex(localAddr, ":")
-	return localAddr[0:idx]
+
+	localIp := localAddr[0:idx]
+	logger.Info("local ip:", localIp)
+
+	return localIp
 }
 
 func NewRegister(endpoints []string, port string, name string) (*Register, error) {
@@ -167,7 +171,7 @@ func (r *Register) Start() {
 					continue
 				}
 
-				logger.Info("ttl:", ka.TTL)
+				logger.Debug("ttl:", ka.TTL)
 			}
 		}
 	}()
