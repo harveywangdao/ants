@@ -9,9 +9,9 @@ import (
 )
 
 func init() {
-	//fileHandler := logger.NewFileHandler("test.log")
-	//logger.SetHandlers(logger.Console, fileHandler)
-	logger.SetHandlers(logger.Console)
+	fileHandler := logger.NewFileHandler("ant.log")
+	logger.SetHandlers(logger.Console, fileHandler)
+	//logger.SetHandlers(logger.Console)
 	//defer logger.Close()
 	logger.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
 	logger.SetLevel(logger.INFO)
