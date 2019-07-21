@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app01-deployment
+  labels:
+    app: ant01
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: ant01
+  template:
+    metadata:
+      labels:
+        app: ant01
+    spec:
+      containers:
+        - name: app01-d
+          image: ants/app01:v1.0
+          ports:
+            - containerPort: 8080
