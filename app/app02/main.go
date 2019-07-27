@@ -11,7 +11,10 @@ func main() {
 	r := gin.Default()
 	r.GET("/ping", func(c *gin.Context) {
 		client := &http.Client{}
-		url := "http://10.100.244.221:8080/ping"
+		//url := "http://10.100.244.221:8080/ping"
+
+		url := "http://app01-service.default.svc.cluster.local:8080/ping"
+
 		req, err := http.NewRequest("GET", url, nil)
 		if err != nil {
 			log.Println(err)

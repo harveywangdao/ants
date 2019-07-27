@@ -15,7 +15,7 @@ spec:
         app: ant01
     spec:
       containers:
-        - name: app01-d
+        - name: app01-container
           image: ants/app01:v1.0
           ports:
             - containerPort: 8080

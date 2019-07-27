@@ -1,4 +1,4 @@
-FROM alpine:latest
+FROM ubuntu:latest
 MAINTAINER thomas "1272777053@qq.com"
 WORKDIR /go/src/
 COPY app02 ./

@@ -5,9 +5,7 @@ metadata:
 spec:
   selector:
     app: ant02
-  type: NodePort
   ports:
-  - protocol: TCP
-    port: 8081
+  - port: 8081
     targetPort: 8081
-    nodePort: 30002
+    protocol: TCP

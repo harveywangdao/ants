@@ -15,7 +15,7 @@ spec:
         app: ant02
     spec:
       containers:
-        - name: app02-d
+        - name: app02-container
           image: ants/app02:v1.0
           ports:
             - containerPort: 8081
