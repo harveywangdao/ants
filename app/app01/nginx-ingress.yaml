@@ -1,0 +1,31 @@
+apiVersion: networking.k8s.io/v1beta1
+kind: Ingress
+metadata:
+  name: app01-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  rules:
+  - host: app01.app.com
+    http:
+      paths:
+      - path:
+        backend:
+          serviceName: app01-service
+          servicePort: 8080
+---
+apiVersion: networking.k8s.io/v1beta1
+kind: Ingress
+metadata:
+  name: app02-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  rules:
+  - host: app02.app.com
+    http:
+      paths:
+      - path:
+        backend:
+          serviceName: app02-service
+          servicePort: 8081

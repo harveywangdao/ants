@@ -1,16 +1,16 @@
 CREATE TABLE IF NOT EXISTS `student`(
-   `id` INT(11) NOT NULL AUTO_INCREMENT COMMENT '主键',
+   `id` BIGINT(11) NOT NULL AUTO_INCREMENT COMMENT '主键',
    `student_no` VARCHAR(100) NOT NULL COMMENT '唯一标识',
    `name` VARCHAR(100) NOT NULL COMMENT '姓名',
    `age` INT(11) NOT NULL COMMENT '年龄',
    `gender` VARCHAR(16) NOT NULL COMMENT '性别:male/female',
-   `remark` VARCHAR(500) DEFAULT NULL COMMENT '备注',
+   `remark` VARCHAR(500) NOT NULL DEFAULT '' COMMENT '备注',
    `create_time` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
    `update_time` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-   `is_delete` TINYINT(1) DEFAULT 0 COMMENT '是否删除 0:未删除 1:已删除',
+   `is_delete` TINYINT(1) NOT NULL DEFAULT 0 COMMENT '是否删除 0:未删除 1:已删除',
    PRIMARY KEY (`id`),
-   KEY `name` (`name`),
-   UNIQUE KEY `unique_student_no` (`student_no`)
+   INDEX `index_name` (`name`),
+   UNIQUE INDEX `unique_student_no` (`student_no`)
 )ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT '学生表';
 
 /*select * from student where age='12' group by name;*/

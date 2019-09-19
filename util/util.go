@@ -15,8 +15,9 @@ func GetUUID() string {
 	return strings.Replace(u.String(), "-", "", -1)
 }
 
-func IsFileExist(filename string) bool {
-	_, err := os.Stat(filename)
+// 文件或目录是否存在
+func IsPathExist(path string) bool {
+	_, err := os.Stat(path)
 	if err == nil {
 		return true
 	}
@@ -26,4 +27,14 @@ func IsFileExist(filename string) bool {
 	  }*/
 
 	return false
+}
+
+// 目录是否存在
+func IsDir(dirPath string) bool {
+	dir, err := os.Stat(dirPath)
+	if err != nil {
+		return false
+	}
+
+	return dir.IsDir()
 }

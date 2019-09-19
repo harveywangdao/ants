@@ -5,6 +5,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"strings"
 	"sync"
 	"time"
 )
@@ -17,6 +18,13 @@ const (
 	WARN
 	ERROR
 )
+
+var LevelMap = map[string]Level{
+	"DEBUG": DEBUG,
+	"INFO":  INFO,
+	"WARN":  WARN,
+	"ERROR": ERROR,
+}
 
 /*
 ===================
@@ -36,6 +44,16 @@ func fileSize(file string) int64 {
 func isExist(path string) bool {
 	_, err := os.Stat(path)
 	return err == nil || os.IsExist(err)
+}
+
+func SetLoggerLevel(levelStr string) {
+	s := strings.ToUpper(levelStr)
+	level, ok := LevelMap[s]
+	if !ok {
+		level = DEBUG
+	}
+
+	SetLevel(level)
 }
 
 /*

@@ -1,0 +1,4 @@
+[ERROR] 2019/09/19 21:31:01 discovery.go:31: [dial tcp 192.168.1.7:2379: connect: connection refused]
+[ERROR] 2019/09/19 21:31:01 service.go:57: [dial tcp 192.168.1.7:2379: connect: connection refused]
+[ERROR] 2019/09/19 21:31:01 service.go:78: [dial tcp 192.168.1.7:2379: connect: connection refused]
+[INFO] 2019/09/19 21:31:01 main.go:22: [Stop Server]

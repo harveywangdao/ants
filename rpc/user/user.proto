@@ -1,0 +1,63 @@
+syntax = "proto3";
+
+package user;
+
+service UserService {
+  rpc AddUser(AddUserRequest) returns (AddUserResponse) {}
+  rpc GetUser(GetUserRequest) returns (GetUserResponse) {}
+  rpc DelUser(DelUserRequest) returns (DelUserResponse) {}
+  rpc ModifyUserInfo(ModifyUserInfoRequest) returns (ModifyUserInfoResponse) {}
+}
+
+message UserInfo {
+  string name = 1;
+  string identityNo = 2;
+  uint32 age = 3;
+  uint32 gender = 4;     // 0:male 1:female
+  string phoneNumber = 5;
+  string email = 6;
+}
+
+message AddUserRequest {
+  string name = 1;
+  string identityNo = 2;
+  uint32 age = 3;
+  uint32 gender = 4;     // 0:male 1:female
+  string phoneNumber = 5;
+  string email = 6;
+}
+
+message AddUserResponse {
+  uint32 code = 1;
+  string codeMsg = 2;
+  string userID = 3;
+}
+
+message GetUserRequest {
+  string userID = 1;
+}
+
+message GetUserResponse {
+  uint32 code = 1;
+  string codeMsg = 2;
+  UserInfo userInfo = 3;
+}
+
+message DelUserRequest {
+  string userID = 1;
+}
+
+message DelUserResponse {
+  uint32 code = 1;
+  string codeMsg = 2;
+}
+
+message ModifyUserInfoRequest {
+  string userID = 1;
+  UserInfo userInfo = 2;
+}
+
+message ModifyUserInfoResponse {
+  uint32 code = 1;
+  string codeMsg = 2;
+}
