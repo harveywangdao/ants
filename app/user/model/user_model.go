@@ -1,6 +1,8 @@
 package model
 
 import (
+	"github.com/harveywangdao/ants/logger"
+	"github.com/jinzhu/gorm"
 	"time"
 )
 
@@ -21,4 +23,15 @@ type UserModel struct {
 
 func (u UserModel) TableName() string {
 	return "user_tb"
+}
+
+func GetUserByName(db *gorm.DB, name string) ([]*UserModel, error) {
+	var users []*UserModel
+	err := db.Where("name = ?", name).Find(&users).Error
+	if err != nil {
+		logger.Error(err)
+		return nil, err
+	}
+
+	return users, nil
 }
