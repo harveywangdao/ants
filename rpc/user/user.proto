@@ -7,6 +7,8 @@ service UserService {
   rpc GetUser(GetUserRequest) returns (GetUserResponse) {}
   rpc DelUser(DelUserRequest) returns (DelUserResponse) {}
   rpc ModifyUserInfo(ModifyUserInfoRequest) returns (ModifyUserInfoResponse) {}
+  rpc GetUserIdByPhoneNumber(GetUserIdByPhoneNumberRequest) returns (GetUserIdByPhoneNumberResponse) {}
+  rpc GetUsersByName(GetUsersByNameRequest) returns (GetUsersByNameResponse) {}
 }
 
 message UserInfo {
@@ -60,4 +62,24 @@ message ModifyUserInfoRequest {
 message ModifyUserInfoResponse {
   uint32 code = 1;
   string codeMsg = 2;
+}
+
+message GetUserIdByPhoneNumberRequest {
+  string phoneNumber = 1;
+}
+
+message GetUserIdByPhoneNumberResponse {
+  uint32 code = 1;
+  string codeMsg = 2;
+  string userID = 3;
+}
+
+message GetUsersByNameRequest {
+  string name = 1;
+}
+
+message GetUsersByNameResponse {
+  uint32 code = 1;
+  string codeMsg = 2;
+  repeated string userIDList = 3;
 }

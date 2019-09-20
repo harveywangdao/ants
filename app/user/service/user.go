@@ -50,6 +50,8 @@ func (s *Service) GetUser(ctx context.Context, req *userpb.GetUserRequest) (*use
 		return nil, err
 	}
 
+	logger.Info(user)
+
 	resp := &userpb.GetUserResponse{
 		UserInfo: &userpb.UserInfo{
 			Name:        user.Name,
@@ -62,6 +64,60 @@ func (s *Service) GetUser(ctx context.Context, req *userpb.GetUserRequest) (*use
 	}
 
 	return resp, nil
+}
+
+func (s *Service) GetUserIdByPhoneNumber(ctx context.Context, req *userpb.GetUserIdByPhoneNumberRequest) (*userpb.GetUserIdByPhoneNumberResponse, error) {
+	if req.PhoneNumber == "" {
+		return nil, errors.New("phone number is null")
+	}
+
+	var user model.UserModel
+	/*err := s.db.Select("user_id, create_time, update_time, is_delete").Where("phone_number = ?", req.PhoneNumber).First(&user).Error
+	if err != nil {
+		logger.Error(err)
+		return nil, err
+	}*/
+
+	err := s.db.Raw("SELECT user_id, create_time, update_time, is_delete FROM user_tb WHERE phone_number = ?", req.PhoneNumber).Scan(&user).Error
+	if err != nil {
+		logger.Error(err)
+		return nil, err
+	}
+
+	logger.Info(user)
+
+	return &userpb.GetUserIdByPhoneNumberResponse{
+		UserID: user.UserID,
+	}, nil
+}
+
+func (s *Service) GetUsersByName(ctx context.Context, req *userpb.GetUsersByNameRequest) (*userpb.GetUsersByNameResponse, error) {
+	if req.Name == "" {
+		return nil, errors.New("name is null")
+	}
+
+	var users []*model.UserModel
+	/*err := s.db.Select("user_id, create_time, update_time, is_delete").Where("phone_number = ?", req.PhoneNumber).First(&user).Error
+	if err != nil {
+		logger.Error(err)
+		return nil, err
+	}*/
+
+	err := s.db.Raw("SELECT user_id, create_time, update_time, is_delete FROM user_tb WHERE name = ?", req.Name).Scan(&users).Error
+	if err != nil {
+		logger.Error(err)
+		return nil, err
+	}
+
+	var userIDList []string
+	for _, v := range users {
+		logger.Info(*v)
+		userIDList = append(userIDList, v.UserID)
+	}
+
+	return &userpb.GetUsersByNameResponse{
+		UserIDList: userIDList,
+	}, nil
 }
 
 func (s *Service) ModifyUserInfo(ctx context.Context, req *userpb.ModifyUserInfoRequest) (*userpb.ModifyUserInfoResponse, error) {
