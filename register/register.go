@@ -185,7 +185,7 @@ func (r *Register) leaseExist() bool {
 	}
 
 	data, _ := json.Marshal(timeToLiveResponse)
-	logger.Info(string(data))
+	logger.Info("lease info", string(data))
 
 	if timeToLiveResponse.TTL == -1 {
 		return false
@@ -203,7 +203,10 @@ func (r *Register) leaseKey() error {
 
 	r.leaseid = resp.ID
 
+	r.serviceInfo.RegisterTime = time.Now()
+
 	data, _ := json.Marshal(r.serviceInfo)
+	logger.Info("service register:", string(data))
 	key := serverRegisterPrefix + r.serviceInfo.Name + "/" + util.GetUUID()
 	_, err = r.cli.Put(context.TODO(), key, string(data), clientv3.WithLease(r.leaseid))
 	if err != nil {

@@ -14,7 +14,11 @@ type UserModel struct {
 	PhoneNumber string    `gorm:"column:phone_number"`
 	Email       string    `gorm:"column:email"`
 	Remark      string    `gorm:"column:remark"`
-	CreateTime  time.Time `gorm:"column:create_time"`
-	UpdateTime  time.Time `gorm:"column:update_time"`
+	CreateTime  time.Time `gorm:"column:create_time;-"`
+	UpdateTime  time.Time `gorm:"column:update_time;-"`
 	IsDelete    uint8     `gorm:"column:is_delete"`
+}
+
+func (u UserModel) TableName() string {
+	return "user_tb"
 }

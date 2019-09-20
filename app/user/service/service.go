@@ -5,6 +5,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/harveywangdao/ants/logger"
 	"github.com/harveywangdao/ants/register"
@@ -67,6 +68,10 @@ func initService() error {
 		return err
 	}
 	// defer db.Close()
+	db.DB().SetMaxIdleConns(10)
+	db.DB().SetMaxOpenConns(100)
+	db.DB().SetConnMaxLifetime(time.Hour)
+
 	App.db = db
 
 	return nil
@@ -91,6 +96,7 @@ func StartService() error {
 		logger.Error(err)
 		return err
 	}
+	logger.Info("rpc server:", lis.Addr())
 
 	s := grpc.NewServer()
 	userpb.RegisterUserServiceServer(s, App)
