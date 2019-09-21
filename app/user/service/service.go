@@ -77,9 +77,23 @@ func initService() error {
 	return nil
 }
 
+func StartHttpService() error {
+	httpService := &HttpService{
+		ServiceApp: App,
+	}
+
+	HttpServer := HttpServer{
+		ServiceName: App.Config.Server.Name,
+		Port:        App.Config.HttpServer.Port,
+	}
+
+	go HttpServer.StartHttpServer(httpService)
+
+	return nil
+}
+
 func StartService() error {
-	err := initService()
-	if err != nil {
+	if err := initService(); err != nil {
 		logger.Error(err)
 		return err
 	}
@@ -90,6 +104,11 @@ func StartService() error {
 		return err
 	}
 	reg.Start()
+
+	if err := StartHttpService(); err != nil {
+		logger.Error(err)
+		return err
+	}
 
 	lis, err := net.Listen("tcp", ":"+App.Config.Server.Port)
 	if err != nil {
