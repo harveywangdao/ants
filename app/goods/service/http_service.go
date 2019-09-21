@@ -10,7 +10,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/harveywangdao/ants/logger"
-	userpb "github.com/harveywangdao/ants/rpc/user"
+	proto "github.com/harveywangdao/ants/rpc/goods"
 )
 
 type HandlerServiceFunc func([]byte) ([]byte, error)
@@ -96,68 +96,57 @@ type HttpService struct {
 	ServiceApp *Service
 }
 
-func (h *HttpService) AddUser(reqData []byte) (interface{}, error) {
-	req := &userpb.AddUserRequest{}
+func (h *HttpService) AddGoods(reqData []byte) (interface{}, error) {
+	req := &proto.AddGoodsRequest{}
 
 	if err := json.Unmarshal(reqData, req); err != nil {
 		logger.Error(err)
 		return nil, err
 	}
 
-	return h.ServiceApp.AddUser(context.Background(), req)
+	return h.ServiceApp.AddGoods(context.Background(), req)
 }
 
-func (h *HttpService) GetUser(reqData []byte) (interface{}, error) {
-	req := &userpb.GetUserRequest{}
+func (h *HttpService) GetGoods(reqData []byte) (interface{}, error) {
+	req := &proto.GetGoodsRequest{}
 
 	if err := json.Unmarshal(reqData, req); err != nil {
 		logger.Error(err)
 		return nil, err
 	}
 
-	return h.ServiceApp.GetUser(context.Background(), req)
+	return h.ServiceApp.GetGoods(context.Background(), req)
 }
 
-func (h *HttpService) GetUserIdByPhoneNumber(reqData []byte) (interface{}, error) {
-	req := &userpb.GetUserIdByPhoneNumberRequest{}
+func (h *HttpService) GetGoodsListByCategory(reqData []byte) (interface{}, error) {
+	req := &proto.GetGoodsListByCategoryRequest{}
 
 	if err := json.Unmarshal(reqData, req); err != nil {
 		logger.Error(err)
 		return nil, err
 	}
 
-	return h.ServiceApp.GetUserIdByPhoneNumber(context.Background(), req)
+	return h.ServiceApp.GetGoodsListByCategory(context.Background(), req)
 }
 
-func (h *HttpService) GetUsersByName(reqData []byte) (interface{}, error) {
-	req := &userpb.GetUsersByNameRequest{}
+func (h *HttpService) ModifyGoodsInfo(reqData []byte) (interface{}, error) {
+	req := &proto.ModifyGoodsInfoRequest{}
 
 	if err := json.Unmarshal(reqData, req); err != nil {
 		logger.Error(err)
 		return nil, err
 	}
 
-	return h.ServiceApp.GetUsersByName(context.Background(), req)
+	return h.ServiceApp.ModifyGoodsInfo(context.Background(), req)
 }
 
-func (h *HttpService) ModifyUserInfo(reqData []byte) (interface{}, error) {
-	req := &userpb.ModifyUserInfoRequest{}
+func (h *HttpService) DelGoods(reqData []byte) (interface{}, error) {
+	req := &proto.DelGoodsRequest{}
 
 	if err := json.Unmarshal(reqData, req); err != nil {
 		logger.Error(err)
 		return nil, err
 	}
 
-	return h.ServiceApp.ModifyUserInfo(context.Background(), req)
-}
-
-func (h *HttpService) DelUser(reqData []byte) (interface{}, error) {
-	req := &userpb.DelUserRequest{}
-
-	if err := json.Unmarshal(reqData, req); err != nil {
-		logger.Error(err)
-		return nil, err
-	}
-
-	return h.ServiceApp.DelUser(context.Background(), req)
+	return h.ServiceApp.DelGoods(context.Background(), req)
 }

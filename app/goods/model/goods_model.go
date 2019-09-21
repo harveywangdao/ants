@@ -7,18 +7,18 @@ import (
 )
 
 type GoogsModel struct {
-	ID          int64     `gorm:"column:id"`
-	UserID      string    `gorm:"column:user_id"`
-	Name        string    `gorm:"column:name"`
-	IdentityNo  string    `gorm:"column:identity_no"`
-	Age         uint32    `gorm:"column:age"`
-	Gender      uint8     `gorm:"column:gender"`
-	PhoneNumber string    `gorm:"column:phone_number"`
-	Email       string    `gorm:"column:email"`
-	Remark      string    `gorm:"column:remark"`
-	CreateTime  time.Time `gorm:"column:create_time;-"`
-	UpdateTime  time.Time `gorm:"column:update_time;-"`
-	IsDelete    uint8     `gorm:"column:is_delete"`
+	ID         int64     `gorm:"column:id"`
+	GoodsID    string    `gorm:"column:goods_id"`
+	SellerID   string    `gorm:"column:seller_id"`
+	GoodsName  string    `gorm:"column:goods_name"`
+	Price      float64   `gorm:"column:price"`
+	Category   uint32    `gorm:"column:category"`
+	Stock      uint32    `gorm:"column:stock"`
+	Brand      string    `gorm:"column:brand"`
+	Remark     string    `gorm:"column:remark"`
+	CreateTime time.Time `gorm:"column:create_time;-"`
+	UpdateTime time.Time `gorm:"column:update_time;-"`
+	IsDelete   uint8     `gorm:"column:is_delete"`
 }
 
 func (m GoogsModel) TableName() string {

@@ -1,0 +1,72 @@
+syntax = "proto3";
+
+package goods;
+
+service GoodsService {
+  rpc AddGoods(AddGoodsRequest) returns (AddGoodsResponse) {}
+  rpc GetGoods(GetGoodsRequest) returns (GetGoodsResponse) {}
+  rpc GetGoodsListByCategory(GetGoodsListByCategoryRequest) returns (GetGoodsListByCategoryResponse) {}
+  rpc ModifyGoodsInfo(ModifyGoodsInfoRequest) returns (ModifyGoodsInfoResponse) {}
+  rpc DelGoods(DelGoodsRequest) returns (DelGoodsResponse) {}
+}
+
+message GoodsInfo {
+  string name = 1;
+  double price = 2;
+  uint32 stock = 3;
+  uint32 category = 4;
+  string brand = 5;
+}
+
+message AddGoodsRequest {
+  string name = 1;
+  double price = 2;
+  uint32 stock = 3;
+  uint32 category = 4;
+  string brand = 5;
+}
+
+message AddGoodsResponse {
+  uint32 code = 1;
+  string codeMsg = 2;
+  string goodsID = 3;
+}
+
+message GetGoodsRequest {
+  string goodsID = 1;
+}
+
+message GetGoodsResponse {
+  uint32 code = 1;
+  string codeMsg = 2;
+  GoodsInfo goodsInfo = 3;
+}
+
+message GetGoodsListByCategoryRequest {
+  uint32 category = 1;
+}
+
+message GetGoodsListByCategoryResponse {
+  uint32 code = 1;
+  string codeMsg = 2;
+  repeated string goodsIDList = 3;
+}
+
+message ModifyGoodsInfoRequest {
+  string goodsID = 1;
+  GoodsInfo goodsInfo = 2;
+}
+
+message ModifyGoodsInfoResponse {
+  uint32 code = 1;
+  string codeMsg = 2;
+}
+
+message DelGoodsRequest {
+  string goodsID = 1;
+}
+
+message DelGoodsResponse {
+  uint32 code = 1;
+  string codeMsg = 2;
+}

@@ -5,7 +5,7 @@ import (
 
 	_ "github.com/go-sql-driver/mysql"
 
-	"github.com/harveywangdao/ants/app/user/service"
+	"github.com/harveywangdao/ants/app/goods/service"
 	"github.com/harveywangdao/ants/logger"
 )
 
