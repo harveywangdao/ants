@@ -1,0 +1,49 @@
+syntax = "proto3";
+
+package order;
+
+service OrderService {
+  rpc AddOrder(AddOrderRequest) returns (AddOrderResponse) {}
+  rpc GetOrder(GetOrderRequest) returns (GetOrderResponse) {}
+  rpc DelOrder(DelOrderRequest) returns (DelOrderResponse) {}
+}
+
+message OrderInfo {
+  string sellerID = 1;
+  string buyerID = 2;
+  string goodsID = 3;
+  string goodsName = 4;
+  double price = 5;
+  double pay = 6;
+  uint32 status = 7;
+}
+
+message AddOrderRequest {
+  string buyerID = 1;
+  string goodsID = 2;
+}
+
+message AddOrderResponse {
+  uint32 code = 1;
+  string codeMsg = 2;
+  string orderID = 3;
+}
+
+message GetOrderRequest {
+  string orderID = 1;
+}
+
+message GetOrderResponse {
+  uint32 code = 1;
+  string codeMsg = 2;
+  OrderInfo orderInfo = 3;
+}
+
+message DelOrderRequest {
+  string orderID = 1;
+}
+
+message DelOrderResponse {
+  uint32 code = 1;
+  string codeMsg = 2;
+}

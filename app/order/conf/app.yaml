@@ -1,0 +1,28 @@
+# app config
+log:
+  logPath: log/order_service.log            # 日志文件路径
+  logLevel: info
+
+etcd:
+  endpoints:
+    - 192.168.1.7:2379
+    - 192.168.1.10:2379
+    - 192.168.1.11:2379
+
+server:
+  name: order-core-service
+  port: 6070
+
+httpServer:
+  port: 4584
+
+database:
+  address: 127.0.0.1:3306
+  username: root
+  password: 180498
+  driverName: mysql
+  dbName: ant_test
+
+client:
+  userServiceName: user-core-service
+  goodsServiceName: goods-core-service
