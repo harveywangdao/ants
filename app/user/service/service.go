@@ -82,12 +82,12 @@ func StartHttpService() error {
 		ServiceApp: App,
 	}
 
-	HttpServer := HttpServer{
+	httpServer := &HttpServer{
 		ServiceName: App.Config.Server.Name,
 		Port:        App.Config.HttpServer.Port,
 	}
 
-	go HttpServer.StartHttpServer(httpService)
+	go httpServer.StartHttpServer(httpService)
 
 	return nil
 }
