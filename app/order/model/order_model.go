@@ -13,6 +13,7 @@ type OrderModel struct {
 	BuyerID    string    `gorm:"column:buyer_id"`
 	GoodsID    string    `gorm:"column:goods_id"`
 	GoodsName  string    `gorm:"column:goods_name"`
+	Count      uint32    `gorm:"column:count"`
 	Price      float64   `gorm:"column:price"`
 	Pay        float64   `gorm:"column:pay"`
 	Status     uint8     `gorm:"column:status"`

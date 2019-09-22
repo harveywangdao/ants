@@ -13,14 +13,16 @@ message OrderInfo {
   string buyerID = 2;
   string goodsID = 3;
   string goodsName = 4;
-  double price = 5;
-  double pay = 6;
-  uint32 status = 7;
+  uint32 count = 5;
+  double price = 6;
+  double pay = 7;
+  uint32 status = 8;
 }
 
 message AddOrderRequest {
   string buyerID = 1;
   string goodsID = 2;
+  uint32 count = 3;
 }
 
 message AddOrderResponse {

@@ -22,6 +22,10 @@ func (s *Service) AddOrder(ctx context.Context, req *proto.AddOrderRequest) (*pr
 		return nil, errors.New("buyerID or goodsID is null")
 	}
 
+	if req.Count == 0 {
+		return nil, errors.New("count can not be 0")
+	}
+
 	getGoodsReq := &goodspb.GetGoodsRequest{
 		GoodsID: req.GoodsID,
 	}
@@ -39,7 +43,8 @@ func (s *Service) AddOrder(ctx context.Context, req *proto.AddOrderRequest) (*pr
 		BuyerID:   req.BuyerID,
 		GoodsID:   req.GoodsID,
 		GoodsName: getGoodsResp.GoodsInfo.Name,
-		Price:     getGoodsResp.GoodsInfo.Price,
+		Count:     req.Count,
+		Price:     getGoodsResp.GoodsInfo.Price * float64(req.Count),
 		Status:    OrderStatusUnpaid,
 	}
 
@@ -74,6 +79,7 @@ func (s *Service) GetOrder(ctx context.Context, req *proto.GetOrderRequest) (*pr
 			BuyerID:   order.BuyerID,
 			GoodsID:   order.GoodsID,
 			GoodsName: order.GoodsName,
+			Count:     order.Count,
 			Price:     order.Price,
 			Pay:       order.Pay,
 			Status:    uint32(order.Status),
