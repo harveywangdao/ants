@@ -6,6 +6,7 @@ service OrderService {
   rpc AddOrder(AddOrderRequest) returns (AddOrderResponse) {}
   rpc GetOrder(GetOrderRequest) returns (GetOrderResponse) {}
   rpc DelOrder(DelOrderRequest) returns (DelOrderResponse) {}
+  rpc PayOrder(PayOrderRequest) returns (PayOrderResponse) {}
 }
 
 message OrderInfo {
@@ -46,6 +47,15 @@ message DelOrderRequest {
 }
 
 message DelOrderResponse {
+  uint32 code = 1;
+  string codeMsg = 2;
+}
+
+message PayOrderRequest {
+  string orderID = 1;
+}
+
+message PayOrderResponse {
   uint32 code = 1;
   string codeMsg = 2;
 }

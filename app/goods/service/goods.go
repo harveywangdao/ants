@@ -121,3 +121,53 @@ func (s *Service) DelGoods(ctx context.Context, req *proto.DelGoodsRequest) (*pr
 		CodeMsg: "delete success",
 	}, nil
 }
+
+/*
+后期优化
+1.要加锁，分布式阻塞锁
+*/
+func (s *Service) DeductStock(ctx context.Context, req *proto.DeductStockRequest) (*proto.DeductStockResponse, error) {
+	if req.GoodsID == "" {
+		return nil, errors.New("goodsID is null")
+	}
+
+	if req.Number == 0 {
+		return nil, errors.New("deduct stock number is 0")
+	}
+
+	tx := s.db.Begin()
+	if err := tx.Error; err != nil {
+		return nil, err
+	} else {
+		// 查询库存
+		var goods model.GoogsModel
+		if err := tx.Where("goods_id = ?", req.GoodsID).First(&goods).Error; err != nil {
+			logger.Error(err)
+			tx.Rollback()
+			return nil, err
+		}
+
+		if goods.Stock < req.Number {
+			tx.Rollback()
+			return nil, errors.New("stock is not enough")
+		}
+
+		// 扣库存, 不能解决高并发问题
+		param := map[string]interface{}{
+			"stock": goods.Stock - req.Number,
+		}
+		if err := tx.Model(model.GoogsModel{}).Where("goods_id = ?", req.GoodsID).Updates(param).Error; err != nil {
+			logger.Error(err)
+			tx.Rollback()
+			return nil, err
+		}
+
+		if err := tx.Commit().Error; err != nil {
+			return nil, err
+		}
+	}
+
+	return &proto.DeductStockResponse{
+		CodeMsg: "deduct stock success",
+	}, nil
+}

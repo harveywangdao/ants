@@ -126,3 +126,14 @@ func (h *HttpService) DelOrder(reqData []byte) (interface{}, error) {
 
 	return h.ServiceApp.DelOrder(context.Background(), req)
 }
+
+func (h *HttpService) PayOrder(reqData []byte) (interface{}, error) {
+	req := &proto.PayOrderRequest{}
+
+	if err := json.Unmarshal(reqData, req); err != nil {
+		logger.Error(err)
+		return nil, err
+	}
+
+	return h.ServiceApp.PayOrder(context.Background(), req)
+}

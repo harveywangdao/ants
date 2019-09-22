@@ -150,3 +150,14 @@ func (h *HttpService) DelGoods(reqData []byte) (interface{}, error) {
 
 	return h.ServiceApp.DelGoods(context.Background(), req)
 }
+
+func (h *HttpService) DeductStock(reqData []byte) (interface{}, error) {
+	req := &proto.DeductStockRequest{}
+
+	if err := json.Unmarshal(reqData, req); err != nil {
+		logger.Error(err)
+		return nil, err
+	}
+
+	return h.ServiceApp.DeductStock(context.Background(), req)
+}

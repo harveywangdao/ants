@@ -8,6 +8,7 @@ service GoodsService {
   rpc GetGoodsListByCategory(GetGoodsListByCategoryRequest) returns (GetGoodsListByCategoryResponse) {}
   rpc ModifyGoodsInfo(ModifyGoodsInfoRequest) returns (ModifyGoodsInfoResponse) {}
   rpc DelGoods(DelGoodsRequest) returns (DelGoodsResponse) {}
+  rpc DeductStock(DeductStockRequest) returns (DeductStockResponse) {}
 }
 
 message GoodsInfo {
@@ -67,6 +68,16 @@ message DelGoodsRequest {
 }
 
 message DelGoodsResponse {
+  uint32 code = 1;
+  string codeMsg = 2;
+}
+
+message DeductStockRequest {
+  string goodsID = 1;
+  uint32 number = 2;
+}
+
+message DeductStockResponse {
   uint32 code = 1;
   string codeMsg = 2;
 }
