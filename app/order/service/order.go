@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"github.com/harveywangdao/ants/app/order/model"
+	"github.com/harveywangdao/ants/cache/redis"
 	"github.com/harveywangdao/ants/logger"
 	goodspb "github.com/harveywangdao/ants/rpc/goods"
 	proto "github.com/harveywangdao/ants/rpc/order"
@@ -125,7 +126,7 @@ func (s *Service) PayOrder(ctx context.Context, req *proto.PayOrderRequest) (*pr
 		return nil, errors.New("orderID is null")
 	}
 
-	conn, err := s.RedisPool.Get()
+	/*conn, err := s.RedisPool.Get()
 	if err != nil {
 		logger.Error(err)
 		return nil, err
@@ -141,7 +142,14 @@ func (s *Service) PayOrder(ctx context.Context, req *proto.PayOrderRequest) (*pr
 		if err := conn.Unlock("PayOrder"+req.OrderID, value); err != nil {
 			logger.Error(err)
 		}
-	}()
+	}()*/
+
+	lock := redis.NewDistLock(s.RedisPool, "PayOrder"+req.OrderID, s.Config.Redis.RedisLockTimeout)
+	if err := lock.Lock(); err != nil {
+		logger.Error(err)
+		return nil, err
+	}
+	defer lock.Unlock()
 
 	// 查询订单
 	var order model.OrderModel

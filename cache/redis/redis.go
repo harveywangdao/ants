@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/gomodule/redigo/redis"
 	"github.com/harveywangdao/ants/logger"
+	"github.com/harveywangdao/ants/util"
 	"time"
 )
 
@@ -77,6 +78,92 @@ func (red *Redis) Close() {
 	red.conn.Close()
 }
 
+type DistLock struct {
+	pool    *RedisPool
+	key     string
+	value   string
+	timeout int64
+	conn    *Redis
+}
+
+func NewDistLock(pool *RedisPool, key string, timeout int64) *DistLock {
+	return &DistLock{
+		pool:    pool,
+		key:     key,
+		value:   util.GetUUID(),
+		timeout: timeout,
+	}
+}
+
+func (l *DistLock) Lock() error {
+	c, err := l.pool.Get()
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+	defer c.Close()
+
+	if err := c.Lock(l.key, l.value, l.timeout); err != nil {
+		logger.Error(err)
+		return err
+	}
+
+	return nil
+}
+
+func (l *DistLock) Unlock() {
+	c, err := l.pool.Get()
+	if err != nil {
+		logger.Error(err)
+		return
+	}
+	defer c.Close()
+
+	if err := c.Unlock(l.key, l.value); err != nil {
+		logger.Error(err)
+	}
+}
+
+func (l *DistLock) Lock1() error {
+	if l.conn == nil {
+		c, err := l.pool.Get()
+		if err != nil {
+			logger.Error(err)
+			return err
+		}
+		l.conn = c
+	}
+
+	if err := l.conn.Lock(l.key, l.value, l.timeout); err != nil {
+		logger.Error(l.key, "redis lock fail:", err)
+		l.conn.Close()
+		l.conn = nil
+		return err
+	}
+
+	return nil
+}
+
+func (l *DistLock) Unlock1() {
+	if l.conn == nil {
+		c, err := l.pool.Get()
+		if err != nil {
+			logger.Error(err)
+			return
+		}
+		l.conn = c
+	}
+
+	defer func() {
+		l.conn.Close()
+		l.conn = nil
+	}()
+
+	if err := l.conn.Unlock(l.key, l.value); err != nil {
+		logger.Error(l.key, "redis unlock fail:", err)
+	}
+}
+
 /*
 锁失败：
 1.已上锁
@@ -96,7 +183,7 @@ func (red *Redis) Lock(key, value string, timeout int64) error {
 		return nil
 	}
 
-	return errors.New(fmt.Sprintf("Lock fail, key already existed"))
+	return errors.New(fmt.Sprintf("Lock fail, key %s already existed", key))
 }
 
 func (red *Redis) Unlock(key, value string) error {
@@ -120,7 +207,7 @@ end`)
 		return nil
 	}
 
-	return errors.New("Unlock fail, key already deleted")
+	return fmt.Errorf("Unlock fail, key %s already deleted", key)
 }
 
 func (red *Redis) IsKeyExist(key string) bool {
