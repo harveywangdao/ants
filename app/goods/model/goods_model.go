@@ -13,7 +13,7 @@ type GoogsModel struct {
 	GoodsName  string    `gorm:"column:goods_name"`
 	Price      float64   `gorm:"column:price"`
 	Category   uint32    `gorm:"column:category"`
-	Stock      uint32    `gorm:"column:stock"`
+	Stock      int32     `gorm:"column:stock"`
 	Brand      string    `gorm:"column:brand"`
 	Remark     string    `gorm:"column:remark"`
 	CreateTime time.Time `gorm:"column:create_time;-"`

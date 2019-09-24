@@ -14,7 +14,7 @@ service GoodsService {
 message GoodsInfo {
   string name = 1;
   double price = 2;
-  uint32 stock = 3;
+  int32 stock = 3;
   uint32 category = 4;
   string brand = 5;
 }
@@ -22,7 +22,7 @@ message GoodsInfo {
 message AddGoodsRequest {
   string name = 1;
   double price = 2;
-  uint32 stock = 3;
+  int32 stock = 3;
   uint32 category = 4;
   string brand = 5;
 }

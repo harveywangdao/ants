@@ -147,19 +147,24 @@ func (s *Service) DeductStock(ctx context.Context, req *proto.DeductStockRequest
 			return nil, err
 		}
 
-		if goods.Stock < req.Number {
+		if goods.Stock < int32(req.Number) {
 			tx.Rollback()
 			return nil, errors.New("stock is not enough")
 		}
 
-		// 扣库存, 不能解决高并发问题
-		param := map[string]interface{}{
-			"stock": goods.Stock - req.Number,
-		}
-		if err := tx.Model(model.GoogsModel{}).Where("goods_id = ?", req.GoodsID).Updates(param).Error; err != nil {
+		// 扣库存,能解决超卖问题,但是性能不高,适合并发少的情况
+		result := tx.Exec("UPDATE goods_tb SET stock = stock - ? WHERE goods_id = ? AND stock >= ?", req.Number, req.GoodsID, req.Number)
+		if err := result.Error; err != nil {
 			logger.Error(err)
 			tx.Rollback()
 			return nil, err
+		}
+
+		logger.Info("RowsAffected:", result.RowsAffected)
+
+		if result.RowsAffected == 0 {
+			tx.Rollback()
+			return nil, errors.New("stock is not enough")
 		}
 
 		if err := tx.Commit().Error; err != nil {

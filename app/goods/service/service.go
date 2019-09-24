@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/harveywangdao/ants/cache/redis"
 	"github.com/harveywangdao/ants/logger"
 	"github.com/harveywangdao/ants/register"
 	"github.com/harveywangdao/ants/register/discovery"
@@ -22,6 +23,7 @@ type Service struct {
 	Config    *Config
 	discovery *discovery.Discovery
 	db        *gorm.DB
+	RedisPool *redis.RedisPool
 }
 
 var (
@@ -73,6 +75,14 @@ func initService() error {
 	db.DB().SetConnMaxLifetime(time.Hour)
 
 	App.db = db
+
+	// Redis
+	pool, err := redis.NewRedisPool(App.Config.Redis.Address, App.Config.Redis.Password)
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+	App.RedisPool = pool
 
 	return nil
 }

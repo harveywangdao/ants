@@ -41,6 +41,12 @@ type ClientConfig struct {
 	UserServiceName string `yaml:"userServiceName" json:"userServiceName"`
 }
 
+type RedisConfig struct {
+	Address          string `yaml:"address" json:"address"`
+	Password         string `yaml:"password" json:"password"`
+	RedisLockTimeout int64  `yaml:"redisLockTimeout" json:"redisLockTimeout"`
+}
+
 type Config struct {
 	Log        *LogConfig        `yaml:"log" json:"log"`
 	Etcd       *EtcdConfig       `yaml:"etcd" json:"etcd"`
@@ -48,6 +54,7 @@ type Config struct {
 	HttpServer *HttpServerConfig `yaml:"httpServer" json:"httpServer"`
 	Database   *DatabaseConfig   `yaml:"database" json:"database"`
 	Client     *ClientConfig     `yaml:"client" json:"client"`
+	Redis      *RedisConfig      `yaml:"redis" json:"redis"`
 }
 
 func getConfig() (*Config, error) {

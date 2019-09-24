@@ -37,7 +37,7 @@ func (s *Service) AddOrder(ctx context.Context, req *proto.AddOrderRequest) (*pr
 	}
 
 	// 这里不解决高并发下数据不一致的问题,有可能库存取出之后就被改变了
-	if getGoodsResp.GoodsInfo.Stock < req.Count {
+	if getGoodsResp.GoodsInfo.Stock < int32(req.Count) {
 		return nil, errors.New("stock number is not enough")
 	}
 
@@ -125,6 +125,24 @@ func (s *Service) PayOrder(ctx context.Context, req *proto.PayOrderRequest) (*pr
 		return nil, errors.New("orderID is null")
 	}
 
+	conn, err := s.RedisPool.Get()
+	if err != nil {
+		logger.Error(err)
+		return nil, err
+	}
+	defer conn.Close()
+
+	value := util.GetUUID()
+	if err := conn.Lock("PayOrder"+req.OrderID, value, s.Config.Redis.RedisLockTimeout); err != nil {
+		logger.Error(err)
+		return nil, err
+	}
+	defer func() {
+		if err := conn.Unlock("PayOrder"+req.OrderID, value); err != nil {
+			logger.Error(err)
+		}
+	}()
+
 	// 查询订单
 	var order model.OrderModel
 	if err := s.db.Where("order_id = ?", req.OrderID).First(&order).Error; err != nil {
@@ -143,22 +161,12 @@ func (s *Service) PayOrder(ctx context.Context, req *proto.PayOrderRequest) (*pr
 		logger.Error(err)
 		return nil, err
 	}
-	if getGoodsResp.GoodsInfo.Stock < order.Count {
+	if getGoodsResp.GoodsInfo.Stock < int32(order.Count) {
 		return nil, errors.New("stock number is not enough")
 	}
 
 	// pay(order.Price)
 	// 支付成功
-
-	// 修改订单状态
-	param := map[string]interface{}{
-		"status": OrderStatusPaid,
-		"pay":    order.Price,
-	}
-	if err := s.db.Model(model.OrderModel{}).Where("order_id = ?", req.OrderID).Updates(param).Error; err != nil {
-		logger.Error(err)
-		return nil, err
-	}
 
 	// 扣库存
 	deductStockReq := &goodspb.DeductStockRequest{
@@ -171,6 +179,16 @@ func (s *Service) PayOrder(ctx context.Context, req *proto.PayOrderRequest) (*pr
 		return nil, err
 	}
 	_ = deductStockResp
+
+	// 修改订单状态
+	param := map[string]interface{}{
+		"status": OrderStatusPaid,
+		"pay":    order.Price,
+	}
+	if err := s.db.Model(model.OrderModel{}).Where("order_id = ?", req.OrderID).Updates(param).Error; err != nil {
+		logger.Error(err)
+		return nil, err
+	}
 
 	return &proto.PayOrderResponse{
 		CodeMsg: "pay success",
