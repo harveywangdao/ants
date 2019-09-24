@@ -113,36 +113,19 @@ func (s *Service) DelOrder(ctx context.Context, req *proto.DelOrderRequest) (*pr
 }
 
 /*
-生成了订单但是没库存的处理
-后期优化设计
-1.支付
-2.抛消息队列
-3.修改支付状态为已支付和扣库存，两者必须是一个事务
-4.修改订单和扣库存只要有失败的必须有重试机制
-5.库存不足要退钱和撤销订单
+后期优化
+0.生成了订单但是没库存,直接撤销
+1.支持实际支付
+
+2.支付成功，扣库存失败(没库存)，直接撤销，退款
+3.支付成功，扣库存失败(库存足)，抛消息队列
+
+4.扣库存成功，修改支付状态失败，抛消息队列
 */
 func (s *Service) PayOrder(ctx context.Context, req *proto.PayOrderRequest) (*proto.PayOrderResponse, error) {
 	if req.OrderID == "" {
 		return nil, errors.New("orderID is null")
 	}
-
-	/*conn, err := s.RedisPool.Get()
-	if err != nil {
-		logger.Error(err)
-		return nil, err
-	}
-	defer conn.Close()
-
-	value := util.GetUUID()
-	if err := conn.Lock("PayOrder"+req.OrderID, value, s.Config.Redis.RedisLockTimeout); err != nil {
-		logger.Error(err)
-		return nil, err
-	}
-	defer func() {
-		if err := conn.Unlock("PayOrder"+req.OrderID, value); err != nil {
-			logger.Error(err)
-		}
-	}()*/
 
 	lock := redis.NewDistLock(s.RedisPool, "PayOrder"+req.OrderID, s.Config.Redis.RedisLockTimeout)
 	if err := lock.Lock(); err != nil {

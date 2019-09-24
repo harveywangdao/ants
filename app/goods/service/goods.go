@@ -122,10 +122,6 @@ func (s *Service) DelGoods(ctx context.Context, req *proto.DelGoodsRequest) (*pr
 	}, nil
 }
 
-/*
-后期优化
-1.要加锁，分布式阻塞锁
-*/
 func (s *Service) DeductStock(ctx context.Context, req *proto.DeductStockRequest) (*proto.DeductStockResponse, error) {
 	if req.GoodsID == "" {
 		return nil, errors.New("goodsID is null")
