@@ -7,6 +7,9 @@ service OrderService {
   rpc GetOrder(GetOrderRequest) returns (GetOrderResponse) {}
   rpc DelOrder(DelOrderRequest) returns (DelOrderResponse) {}
   rpc PayOrder(PayOrderRequest) returns (PayOrderResponse) {}
+
+  rpc SetActivity(SetActivityRequest) returns (SetActivityResponse) {}
+  rpc GetActivity(GetActivityRequest) returns (GetActivityResponse) {}
 }
 
 message OrderInfo {
@@ -58,4 +61,29 @@ message PayOrderRequest {
 message PayOrderResponse {
   uint32 code = 1;
   string codeMsg = 2;
+}
+
+message SetActivityRequest {
+  string activityID = 1;
+  string activityName = 2;
+  string startTime = 3;
+  string endTime = 4;
+}
+
+message SetActivityResponse {
+  uint32 code = 1;
+  string codeMsg = 2;
+}
+
+message GetActivityRequest {
+  string activityID = 1;
+}
+
+message GetActivityResponse {
+  uint32 code = 1;
+  string codeMsg = 2;
+  string activityID = 3;
+  string activityName = 4;
+  string startTime = 5;
+  string endTime = 6;
 }

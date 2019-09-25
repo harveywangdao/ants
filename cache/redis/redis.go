@@ -293,3 +293,66 @@ func (red *Redis) SetListValueByIndex(key string, index int, value int64) error 
 
 	return nil
 }
+
+func (red *Redis) Hset(key, field, value string) error {
+	_, err := red.conn.Do("HSET", key, field, value)
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+
+	return nil
+}
+
+func (red *Redis) Hget(key, field string) (string, error) {
+	value, err := redis.String(red.conn.Do("HGET", key, field))
+	if err != nil {
+		logger.Error(err)
+		return "", err
+	}
+
+	return value, nil
+}
+
+func (red *Redis) Hmset(key string, m map[string]interface{}) error {
+	var args []interface{}
+	args = append(args, key)
+	for k, v := range m {
+		args = append(args, k)
+		args = append(args, v)
+	}
+
+	_, err := red.conn.Do("HMSET", args...)
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+
+	return nil
+}
+
+func (red *Redis) Hmget(key string, fields []string) ([]string, error) {
+	var args []interface{}
+	args = append(args, key)
+	for _, v := range fields {
+		args = append(args, v)
+	}
+
+	value, err := redis.Strings(red.conn.Do("HGET", args...))
+	if err != nil {
+		logger.Error(err)
+		return nil, err
+	}
+
+	return value, nil
+}
+
+func (red *Redis) Hgetall(key string) (map[string]string, error) {
+	fieldValues, err := redis.StringMap(red.conn.Do("HGETALL", key))
+	if err != nil {
+		logger.Error(err)
+		return nil, err
+	}
+
+	return fieldValues, nil
+}

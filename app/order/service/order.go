@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/harveywangdao/ants/app/order/model"
 	"github.com/harveywangdao/ants/cache/redis"
@@ -183,5 +184,79 @@ func (s *Service) PayOrder(ctx context.Context, req *proto.PayOrderRequest) (*pr
 
 	return &proto.PayOrderResponse{
 		CodeMsg: "pay success",
+	}, nil
+}
+
+const (
+	ActivityPrefix = "ActivityPrefix"
+)
+
+func (s *Service) SetActivity(ctx context.Context, req *proto.SetActivityRequest) (*proto.SetActivityResponse, error) {
+	if req.ActivityID == "" || req.ActivityName == "" || req.StartTime == "" || req.EndTime == "" {
+		return nil, errors.New("param can not be null")
+	}
+
+	lock := redis.NewDistLock(s.RedisPool, "SetActivity"+req.ActivityID, s.Config.Redis.RedisLockTimeout)
+	if err := lock.Lock(); err != nil {
+		logger.Error(err)
+		return nil, err
+	}
+	defer lock.Unlock()
+
+	conn, err := s.RedisPool.Get()
+	if err != nil {
+		logger.Error(err)
+		return nil, err
+	}
+	defer conn.Close()
+
+	if conn.IsKeyExist(ActivityPrefix + req.ActivityID) {
+		return nil, fmt.Errorf("%s already existed", ActivityPrefix+req.ActivityID)
+	}
+
+	m := map[string]interface{}{
+		"activityID":   req.ActivityID,
+		"activityName": req.ActivityName,
+		"startTime":    req.StartTime,
+		"endTime":      req.EndTime,
+	}
+
+	if err := conn.Hmset(ActivityPrefix+req.ActivityID, m); err != nil {
+		logger.Error(err)
+		return nil, err
+	}
+
+	return &proto.SetActivityResponse{
+		CodeMsg: "add activity success",
+	}, nil
+}
+
+func (s *Service) GetActivity(ctx context.Context, req *proto.GetActivityRequest) (*proto.GetActivityResponse, error) {
+	if req.ActivityID == "" {
+		return nil, errors.New("activityID is null")
+	}
+
+	conn, err := s.RedisPool.Get()
+	if err != nil {
+		logger.Error(err)
+		return nil, err
+	}
+	defer conn.Close()
+
+	if !conn.IsKeyExist(ActivityPrefix + req.ActivityID) {
+		return nil, fmt.Errorf("activity %s not existed", req.ActivityID)
+	}
+
+	activityInfo, err := conn.Hgetall(ActivityPrefix + req.ActivityID)
+	if err != nil {
+		logger.Error(err)
+		return nil, err
+	}
+
+	return &proto.GetActivityResponse{
+		ActivityID:   activityInfo["activityID"],
+		ActivityName: activityInfo["activityName"],
+		StartTime:    activityInfo["startTime"],
+		EndTime:      activityInfo["endTime"],
 	}, nil
 }

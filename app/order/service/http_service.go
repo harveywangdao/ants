@@ -137,3 +137,25 @@ func (h *HttpService) PayOrder(reqData []byte) (interface{}, error) {
 
 	return h.ServiceApp.PayOrder(context.Background(), req)
 }
+
+func (h *HttpService) SetActivity(reqData []byte) (interface{}, error) {
+	req := &proto.SetActivityRequest{}
+
+	if err := json.Unmarshal(reqData, req); err != nil {
+		logger.Error(err)
+		return nil, err
+	}
+
+	return h.ServiceApp.SetActivity(context.Background(), req)
+}
+
+func (h *HttpService) GetActivity(reqData []byte) (interface{}, error) {
+	req := &proto.GetActivityRequest{}
+
+	if err := json.Unmarshal(reqData, req); err != nil {
+		logger.Error(err)
+		return nil, err
+	}
+
+	return h.ServiceApp.GetActivity(context.Background(), req)
+}
