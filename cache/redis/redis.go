@@ -356,3 +356,28 @@ func (red *Redis) Hgetall(key string) (map[string]string, error) {
 
 	return fieldValues, nil
 }
+
+func (red *Redis) ListPush(key, value string) error {
+	_, err := red.conn.Do("LPUSH", key, value)
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+
+	return nil
+}
+
+func (red *Redis) ListPop(key string) (string, error) {
+	value, err := redis.String(red.conn.Do("RPOP", key))
+	if err == redis.ErrNil {
+		logger.Debug("list", key, "is nil")
+		return "", nil
+	}
+
+	if err != nil {
+		logger.Error(err)
+		return "", err
+	}
+
+	return value, nil
+}

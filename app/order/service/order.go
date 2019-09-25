@@ -7,6 +7,7 @@ import (
 
 	"github.com/harveywangdao/ants/app/order/model"
 	"github.com/harveywangdao/ants/cache/redis"
+	"github.com/harveywangdao/ants/common"
 	"github.com/harveywangdao/ants/logger"
 	goodspb "github.com/harveywangdao/ants/rpc/goods"
 	proto "github.com/harveywangdao/ants/rpc/order"
@@ -81,7 +82,7 @@ func (s *Service) GetOrder(ctx context.Context, req *proto.GetOrderRequest) (*pr
 
 	logger.Info(order)
 
-	resp := &proto.GetOrderResponse{
+	return &proto.GetOrderResponse{
 		OrderInfo: &proto.OrderInfo{
 			SellerID:  order.SellerID,
 			BuyerID:   order.BuyerID,
@@ -92,9 +93,7 @@ func (s *Service) GetOrder(ctx context.Context, req *proto.GetOrderRequest) (*pr
 			Pay:       order.Pay,
 			Status:    uint32(order.Status),
 		},
-	}
-
-	return resp, nil
+	}, nil
 }
 
 func (s *Service) DelOrder(ctx context.Context, req *proto.DelOrderRequest) (*proto.DelOrderResponse, error) {
@@ -118,8 +117,8 @@ func (s *Service) DelOrder(ctx context.Context, req *proto.DelOrderRequest) (*pr
 0.生成了订单但是没库存,直接撤销
 1.支持实际支付
 
-2.支付成功，扣库存失败(没库存)，直接撤销，退款
-3.支付成功，扣库存失败(库存足)，抛消息队列
+2.支付成功，扣库存失败(库存足)，抛消息队列
+3.支付成功，扣库存失败(没库存)，直接撤销，退款
 
 4.扣库存成功，修改支付状态失败，抛消息队列
 */
@@ -145,7 +144,7 @@ func (s *Service) PayOrder(ctx context.Context, req *proto.PayOrderRequest) (*pr
 		return nil, errors.New("current status is not unpaid")
 	}
 
-	getGoodsReq := &goodspb.GetGoodsRequest{
+	/*getGoodsReq := &goodspb.GetGoodsRequest{
 		GoodsID: order.GoodsID,
 	}
 	getGoodsResp, err := s.GoodsServiceClient.GetGoods(ctx, getGoodsReq)
@@ -155,7 +154,7 @@ func (s *Service) PayOrder(ctx context.Context, req *proto.PayOrderRequest) (*pr
 	}
 	if getGoodsResp.GoodsInfo.Stock < int32(order.Count) {
 		return nil, errors.New("stock number is not enough")
-	}
+	}*/
 
 	// pay(order.Price)
 	// 支付成功
@@ -163,14 +162,27 @@ func (s *Service) PayOrder(ctx context.Context, req *proto.PayOrderRequest) (*pr
 	// 扣库存
 	deductStockReq := &goodspb.DeductStockRequest{
 		GoodsID: order.GoodsID,
+		OrderID: req.OrderID,
+		PayID:   util.GetUUID(), // 后期修改
 		Number:  order.Count,
 	}
 	deductStockResp, err := s.GoodsServiceClient.DeductStock(ctx, deductStockReq)
 	if err != nil {
 		logger.Error(err)
+		// 2.支付成功，扣库存失败(库存足)，抛消息队列
+		s.pushDeductStockEvent(ctx, req)
 		return nil, err
 	}
-	_ = deductStockResp
+
+	if deductStockResp.Code != 0 && deductStockResp.Code != common.ErrDeductStockRepeat {
+		logger.Error("Code:", deductStockResp.Code, "CodeMsg:", deductStockResp.CodeMsg)
+
+		if deductStockResp.Code == common.ErrStockIsNotEnough {
+			// 3.支付成功，扣库存失败(没库存)，直接撤销，退款
+		}
+
+		return nil, errors.New(deductStockResp.CodeMsg)
+	}
 
 	// 修改订单状态
 	param := map[string]interface{}{

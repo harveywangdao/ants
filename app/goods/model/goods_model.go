@@ -35,3 +35,18 @@ func GetGoodsListByCategory(db *gorm.DB, category string) ([]*GoogsModel, error)
 
 	return goodsList, nil
 }
+
+type PurchaseRecordModel struct {
+	ID         int64     `gorm:"column:id"`
+	GoodsID    string    `gorm:"column:goods_id"`
+	OrderID    string    `gorm:"column:order_id"`
+	PayID      string    `gorm:"column:pay_id"`
+	Remark     string    `gorm:"column:remark"`
+	CreateTime time.Time `gorm:"column:create_time;-"`
+	UpdateTime time.Time `gorm:"column:update_time;-"`
+	IsDelete   uint8     `gorm:"column:is_delete"`
+}
+
+func (m PurchaseRecordModel) TableName() string {
+	return "purchase_record_tb"
+}

@@ -74,7 +74,9 @@ message DelGoodsResponse {
 
 message DeductStockRequest {
   string goodsID = 1;
-  uint32 number = 2;
+  string orderID = 2;
+  string payID = 3;
+  uint32 number = 4;
 }
 
 message DeductStockResponse {

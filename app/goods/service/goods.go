@@ -3,8 +3,10 @@ package service
 import (
 	"context"
 	"errors"
+	"strings"
 
 	"github.com/harveywangdao/ants/app/goods/model"
+	"github.com/harveywangdao/ants/common"
 	"github.com/harveywangdao/ants/logger"
 	proto "github.com/harveywangdao/ants/rpc/goods"
 	"github.com/harveywangdao/ants/util"
@@ -123,8 +125,8 @@ func (s *Service) DelGoods(ctx context.Context, req *proto.DelGoodsRequest) (*pr
 }
 
 func (s *Service) DeductStock(ctx context.Context, req *proto.DeductStockRequest) (*proto.DeductStockResponse, error) {
-	if req.GoodsID == "" {
-		return nil, errors.New("goodsID is null")
+	if req.GoodsID == "" || req.OrderID == "" || req.PayID == "" {
+		return nil, errors.New("param can not be null")
 	}
 
 	if req.Number == 0 {
@@ -145,7 +147,28 @@ func (s *Service) DeductStock(ctx context.Context, req *proto.DeductStockRequest
 
 		if goods.Stock < int32(req.Number) {
 			tx.Rollback()
-			return nil, errors.New("stock is not enough")
+			return &proto.DeductStockResponse{
+				Code:    common.ErrStockIsNotEnough,
+				CodeMsg: "stock is not enough",
+			}, nil
+		}
+
+		if err := tx.Create(&model.PurchaseRecordModel{
+			GoodsID: req.GoodsID,
+			OrderID: req.OrderID,
+			PayID:   req.PayID,
+		}).Error; err != nil {
+			logger.Error(err)
+			tx.Rollback()
+
+			if strings.Contains(err.Error(), "Duplicate entry") {
+				return &proto.DeductStockResponse{
+					Code:    common.ErrDeductStockRepeat,
+					CodeMsg: "deduct stock repeat",
+				}, nil
+			}
+
+			return nil, err
 		}
 
 		// 扣库存,能解决超卖问题,但是性能不高,适合并发少的情况
@@ -156,11 +179,14 @@ func (s *Service) DeductStock(ctx context.Context, req *proto.DeductStockRequest
 			return nil, err
 		}
 
-		logger.Info("RowsAffected:", result.RowsAffected)
+		logger.Debug("RowsAffected:", result.RowsAffected)
 
 		if result.RowsAffected == 0 {
 			tx.Rollback()
-			return nil, errors.New("stock is not enough")
+			return &proto.DeductStockResponse{
+				Code:    common.ErrStockIsNotEnough,
+				CodeMsg: "stock is not enough",
+			}, nil
 		}
 
 		if err := tx.Commit().Error; err != nil {

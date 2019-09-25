@@ -92,6 +92,8 @@ func initService() error {
 	}
 	App.RedisPool = pool
 
+	DeductStockEventStartListen(App)
+
 	return nil
 }
 
