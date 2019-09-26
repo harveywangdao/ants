@@ -74,10 +74,6 @@ func NewRedis(pool *redis.Pool) (*Redis, error) {
 	return red, nil
 }
 
-func (red *Redis) Close() {
-	red.conn.Close()
-}
-
 type DistLock struct {
 	pool    *RedisPool
 	key     string
@@ -162,6 +158,30 @@ func (l *DistLock) Unlock1() {
 	if err := l.conn.Unlock(l.key, l.value); err != nil {
 		logger.Error(l.key, "redis unlock fail:", err)
 	}
+}
+
+func (red *Redis) Close() error {
+	return red.conn.Close()
+}
+
+func (red *Redis) Err() error {
+	return red.conn.Err()
+}
+
+func (red *Redis) Do(commandName string, args ...interface{}) (reply interface{}, err error) {
+	return red.conn.Do(commandName, args...)
+}
+
+func (red *Redis) Send(commandName string, args ...interface{}) error {
+	return red.conn.Send(commandName, args...)
+}
+
+func (red *Redis) Flush() error {
+	return red.conn.Flush()
+}
+
+func (red *Redis) Receive() (reply interface{}, err error) {
+	return red.conn.Receive()
 }
 
 /*
@@ -471,4 +491,14 @@ func (red *Redis) HyperLogLogLen(key string) (int64, error) {
 	}
 
 	return value, nil
+}
+
+func (red *Redis) Publish(channel, msg string) error {
+	_, err := red.conn.Do("PUBLISH", channel, msg)
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+
+	return nil
 }

@@ -157,7 +157,7 @@ func (s *Service) PayOrder(ctx context.Context, req *proto.PayOrderRequest) (*pr
 	conn.ZsetAdd(PayOrderPersonTimeByTimestamp, order.BuyerID, time.Now().Unix())
 	conn.HyperLogLogAdd(PayOrderPersonTimeEstimate, order.BuyerID)
 
-	getGoodsReq := &goodspb.GetGoodsRequest{
+	/*getGoodsReq := &goodspb.GetGoodsRequest{
 		GoodsID: order.GoodsID,
 	}
 	getGoodsResp, err := s.GoodsServiceClient.GetGoods(ctx, getGoodsReq)
@@ -167,7 +167,7 @@ func (s *Service) PayOrder(ctx context.Context, req *proto.PayOrderRequest) (*pr
 	}
 	if getGoodsResp.GoodsInfo.Stock < int32(order.Count) {
 		return nil, errors.New("stock number is not enough")
-	}
+	}*/
 
 	// pay(order.Price)
 	// 支付成功
@@ -183,7 +183,8 @@ func (s *Service) PayOrder(ctx context.Context, req *proto.PayOrderRequest) (*pr
 	if err != nil {
 		logger.Error(err)
 		// 2.支付成功，扣库存失败(库存足)，抛消息队列
-		s.pushDeductStockEvent(ctx, req)
+		// s.pushDeductStockEvent(ctx, req)
+		s.publishDeductStockChannel(ctx, req)
 		return nil, err
 	}
 

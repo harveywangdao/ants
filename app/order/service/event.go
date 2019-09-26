@@ -6,6 +6,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/gomodule/redigo/redis"
 	"github.com/harveywangdao/ants/app/order/model"
 	"github.com/harveywangdao/ants/common"
 	"github.com/harveywangdao/ants/logger"
@@ -16,12 +17,11 @@ import (
 
 const (
 	DeductStockEventList       = "DeductStockEventList"
+	DeductStockEventChannel    = "DeductStockEventChannel"
 	PayOrderEventTimerDuration = 2 * time.Second
 )
 
 func DeductStockEventStartListen(s *Service) {
-	ticker := time.NewTicker(PayOrderEventTimerDuration)
-
 	go func() {
 		conn, err := s.RedisPool.Get()
 		if err != nil {
@@ -29,6 +29,8 @@ func DeductStockEventStartListen(s *Service) {
 			return
 		}
 		defer conn.Close()
+
+		ticker := time.NewTicker(PayOrderEventTimerDuration)
 
 		for {
 			select {
@@ -40,27 +42,80 @@ func DeductStockEventStartListen(s *Service) {
 				}
 
 				if data != "" {
-					var req proto.PayOrderRequest
-					if err := json.Unmarshal([]byte(data), &req); err != nil {
-						logger.Error(err)
-						break
-					}
-
-					if err := s.DeductStockEvent(context.Background(), &req); err != nil {
+					if err := s.deductStockEvent([]byte(data)); err != nil {
 						logger.Error(err)
 
 						if err := conn.ListPush(DeductStockEventList, data); err != nil {
 							logger.Error(err)
 						}
-						break
 					}
+				}
+			}
+		}
+	}()
+
+	go func() {
+		conn, err := s.RedisPool.Get()
+		if err != nil {
+			logger.Error(err)
+			return
+		}
+		defer conn.Close()
+
+		var channels []string
+		channels = append(channels, DeductStockEventChannel)
+
+		psc := redis.PubSubConn{Conn: conn}
+		if err := psc.Subscribe(redis.Args{}.AddFlat(channels)...); err != nil {
+			logger.Error(err)
+			return
+		}
+		defer psc.Unsubscribe()
+
+		for {
+			switch n := psc.Receive().(type) {
+			case error:
+				logger.Error(n)
+				return
+
+			case redis.Message:
+				logger.Info(n.Channel, string(n.Data))
+				if n.Channel == DeductStockEventChannel && len(n.Data) != 0 {
+					if err := s.deductStockEvent(n.Data); err != nil {
+						time.Sleep(1 * time.Second)
+
+						conn2, err := s.RedisPool.Get()
+						if err != nil {
+							logger.Error(err)
+							break
+						}
+						conn2.Publish(DeductStockEventChannel, string(n.Data))
+						conn2.Close()
+					}
+				}
+
+			case redis.Subscription:
+				switch n.Count {
+				case len(channels):
+					logger.Info(channels, "subscribe success")
+				case 0:
+					logger.Error(channels, "subscribe fail")
+					return
 				}
 			}
 		}
 	}()
 }
 
-func (s *Service) DeductStockEvent(ctx context.Context, req *proto.PayOrderRequest) error {
+func (s *Service) deductStockEvent(data []byte) error {
+	ctx := context.Background()
+
+	req := &proto.PayOrderRequest{}
+	if err := json.Unmarshal(data, req); err != nil {
+		logger.Error(err)
+		return err
+	}
+
 	if req.OrderID == "" {
 		return nil
 	}
@@ -139,6 +194,28 @@ func (s *Service) pushDeductStockEvent(ctx context.Context, req *proto.PayOrderR
 	defer conn.Close()
 
 	if err := conn.ListPush(DeductStockEventList, string(data)); err != nil {
+		logger.Error(err)
+		return err
+	}
+
+	return nil
+}
+
+func (s *Service) publishDeductStockChannel(ctx context.Context, req *proto.PayOrderRequest) error {
+	data, err := json.Marshal(req)
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+
+	conn, err := s.RedisPool.Get()
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+	defer conn.Close()
+
+	if err := conn.Publish(DeductStockEventChannel, string(data)); err != nil {
 		logger.Error(err)
 		return err
 	}
