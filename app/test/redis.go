@@ -2,12 +2,13 @@ package main
 
 import (
 	"fmt"
+	"github.com/go-redsync/redsync"
 	"github.com/gomodule/redigo/redis"
 	"reflect"
 	"time"
 )
 
-func main() {
+func do1() {
 	pool := &redis.Pool{
 		MaxIdle:     3,
 		IdleTimeout: 240 * time.Second,
@@ -58,4 +59,105 @@ func main() {
 	replyStr := fmt.Sprintf("%v", reply)
 	fmt.Println("replyStr:", replyStr)
 	fmt.Println("replyStr=1", replyStr == "1")
+}
+
+func do2() {
+	addrs := []string{
+		"192.168.1.10:7001",
+		"192.168.1.10:7002",
+		"192.168.1.10:7003",
+		"192.168.1.10:7004",
+		"192.168.1.10:7005",
+	}
+
+	f1 := func() (redis.Conn, error) {
+		addr := addrs[0]
+		fmt.Println("addr:", addr)
+		c, err := redis.Dial("tcp", addr)
+		if err != nil {
+			fmt.Println(err)
+		}
+		return c, err
+	}
+
+	f2 := func() (redis.Conn, error) {
+		addr := addrs[1]
+		fmt.Println("addr:", addr)
+		c, err := redis.Dial("tcp", addr)
+		if err != nil {
+			fmt.Println(err)
+		}
+		return c, err
+	}
+
+	f3 := func() (redis.Conn, error) {
+		addr := addrs[2]
+		fmt.Println("addr:", addr)
+		c, err := redis.Dial("tcp", addr)
+		if err != nil {
+			fmt.Println(err)
+		}
+		return c, err
+	}
+
+	f4 := func() (redis.Conn, error) {
+		addr := addrs[3]
+		fmt.Println("addr:", addr)
+		c, err := redis.Dial("tcp", addr)
+		if err != nil {
+			fmt.Println(err)
+		}
+		return c, err
+	}
+
+	f5 := func() (redis.Conn, error) {
+		addr := addrs[4]
+		fmt.Println("addr:", addr)
+		c, err := redis.Dial("tcp", addr)
+		if err != nil {
+			fmt.Println(err)
+		}
+		return c, err
+	}
+
+	var fs []func() (redis.Conn, error)
+	fs = append(fs, f1, f2, f3, f4, f5)
+
+	var pools []redsync.Pool
+	for _, v := range fs {
+		pool := &redis.Pool{
+			MaxIdle:     3,
+			IdleTimeout: 240 * time.Second,
+			Dial:        v,
+		}
+
+		pools = append(pools, pool)
+	}
+
+	mu := redsync.New(pools).NewMutex("woshishacha",
+		redsync.SetExpiry(30*time.Second),
+		redsync.SetTries(10),
+		redsync.SetRetryDelay(1*time.Second))
+
+	if err := mu.Lock(); err != nil {
+		fmt.Println("AAAAAAAAAAAAAA", err)
+	}
+
+	fmt.Println("do something1")
+
+	if err := mu.Lock(); err != nil {
+		fmt.Println("BBBBBBBBBBBBBB", err)
+	}
+
+	fmt.Println("do something2")
+
+	if ok := mu.Unlock(); !ok {
+		fmt.Println("do something3")
+	}
+
+	fmt.Println("do something4")
+}
+
+func main() {
+	do2()
 }
