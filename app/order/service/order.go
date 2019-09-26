@@ -155,6 +155,7 @@ func (s *Service) PayOrder(ctx context.Context, req *proto.PayOrderRequest) (*pr
 
 	conn.SetAdd(PayOrderPersonTime, order.BuyerID)
 	conn.ZsetAdd(PayOrderPersonTimeByTimestamp, order.BuyerID, time.Now().Unix())
+	conn.HyperLogLogAdd(PayOrderPersonTimeEstimate, order.BuyerID)
 
 	getGoodsReq := &goodspb.GetGoodsRequest{
 		GoodsID: order.GoodsID,
@@ -215,6 +216,7 @@ const (
 	ActivityPrefix                = "ActivityPrefix"
 	PayOrderPersonTime            = "PayOrderPersonTime"            // 历史支付人次,一个人算一次
 	PayOrderPersonTimeByTimestamp = "PayOrderPersonTimeByTimestamp" // 历史支付人次,一个人算一次,按照时间戳排序
+	PayOrderPersonTimeEstimate    = "PayOrderPersonTimeEstimate"    // 历史支付人次,一个人算一次,有误差,占资源小
 )
 
 func (s *Service) SetActivity(ctx context.Context, req *proto.SetActivityRequest) (*proto.SetActivityResponse, error) {
@@ -319,10 +321,17 @@ func (s *Service) GetPayOrderPersonTime(ctx context.Context, req *proto.GetPayOr
 		return nil, err
 	}
 
+	personTimeEstimate, err := conn.HyperLogLogLen(PayOrderPersonTimeEstimate)
+	if err != nil {
+		logger.Error(err)
+		return nil, err
+	}
+
 	return &proto.GetPayOrderPersonTimeResponse{
 		PersonTime:            personTime,
 		PersonList:            personList,
 		PersonTimeByTimestamp: personTimeByTimestamp,
 		PersonListMap:         personListMap,
+		PersonTimeEstimate:    personTimeEstimate,
 	}, nil
 }

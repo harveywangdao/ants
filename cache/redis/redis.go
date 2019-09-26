@@ -452,3 +452,23 @@ func (red *Redis) ZsetMembers(key string) (map[string]int64, error) {
 
 	return value, nil
 }
+
+func (red *Redis) HyperLogLogAdd(key, value string) error {
+	_, err := red.conn.Do("PFADD", key, value)
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+
+	return nil
+}
+
+func (red *Redis) HyperLogLogLen(key string) (int64, error) {
+	value, err := redis.Int64(red.conn.Do("PFCOUNT", key))
+	if err != nil {
+		logger.Error(err)
+		return 0, err
+	}
+
+	return value, nil
+}

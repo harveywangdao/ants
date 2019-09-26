@@ -103,4 +103,6 @@ message GetPayOrderPersonTimeResponse {
 
   int64 personTimeByTimestamp = 5;
   map<string, int64> personListMap = 6;
+
+  int64 personTimeEstimate = 7;
 }
