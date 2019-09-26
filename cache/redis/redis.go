@@ -381,3 +381,74 @@ func (red *Redis) ListPop(key string) (string, error) {
 
 	return value, nil
 }
+
+func (red *Redis) SetAdd(key, value string) error {
+	_, err := red.conn.Do("SADD", key, value)
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+
+	return nil
+}
+
+func (red *Redis) SetLen(key string) (int64, error) {
+	value, err := redis.Int64(red.conn.Do("SCARD", key))
+	if err != nil {
+		logger.Error(err)
+		return 0, err
+	}
+
+	return value, nil
+}
+
+func (red *Redis) SetMembers(key string) ([]string, error) {
+	value, err := redis.Strings(red.conn.Do("SMEMBERS", key))
+	if err != nil {
+		logger.Error(err)
+		return nil, err
+	}
+
+	return value, nil
+}
+
+func (red *Redis) ZsetAdd(key, value string, score int64) error {
+	_, err := red.conn.Do("ZADD", key, score, value)
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+
+	return nil
+}
+
+func (red *Redis) ZsetLen(key string) (int64, error) {
+	value, err := redis.Int64(red.conn.Do("ZCARD", key))
+	if err != nil {
+		logger.Error(err)
+		return 0, err
+	}
+
+	return value, nil
+}
+
+func (red *Redis) ZsetLenBetweenScores(key string, min, max int64) (int64, error) {
+	value, err := redis.Int64(red.conn.Do("ZCOUNT", key, min, max))
+	if err != nil {
+		logger.Error(err)
+		return 0, err
+	}
+
+	return value, nil
+}
+
+func (red *Redis) ZsetMembers(key string) (map[string]int64, error) {
+	//value, err := redis.Int64Map(red.conn.Do("ZRANGE", key, 0, -1, "WITHSCORES"))
+	value, err := redis.Int64Map(red.conn.Do("ZREVRANGE", key, 0, -1, "WITHSCORES"))
+	if err != nil {
+		logger.Error(err)
+		return nil, err
+	}
+
+	return value, nil
+}

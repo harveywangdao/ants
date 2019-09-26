@@ -10,6 +10,8 @@ service OrderService {
 
   rpc SetActivity(SetActivityRequest) returns (SetActivityResponse) {}
   rpc GetActivity(GetActivityRequest) returns (GetActivityResponse) {}
+
+  rpc GetPayOrderPersonTime(GetPayOrderPersonTimeRequest) returns (GetPayOrderPersonTimeResponse) {}
 }
 
 message OrderInfo {
@@ -86,4 +88,19 @@ message GetActivityResponse {
   string activityName = 4;
   string startTime = 5;
   string endTime = 6;
+}
+
+message GetPayOrderPersonTimeRequest {
+  string param = 1;
+}
+
+message GetPayOrderPersonTimeResponse {
+  uint32 code = 1;
+  string codeMsg = 2;
+  
+  int64 personTime = 3;
+  repeated string personList = 4;
+
+  int64 personTimeByTimestamp = 5;
+  map<string, int64> personListMap = 6;
 }

@@ -159,3 +159,14 @@ func (h *HttpService) GetActivity(reqData []byte) (interface{}, error) {
 
 	return h.ServiceApp.GetActivity(context.Background(), req)
 }
+
+func (h *HttpService) GetPayOrderPersonTime(reqData []byte) (interface{}, error) {
+	req := &proto.GetPayOrderPersonTimeRequest{}
+
+	if err := json.Unmarshal(reqData, req); err != nil {
+		logger.Error(err)
+		return nil, err
+	}
+
+	return h.ServiceApp.GetPayOrderPersonTime(context.Background(), req)
+}

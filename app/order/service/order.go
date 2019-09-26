@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/harveywangdao/ants/app/order/model"
 	"github.com/harveywangdao/ants/cache/redis"
@@ -144,7 +145,18 @@ func (s *Service) PayOrder(ctx context.Context, req *proto.PayOrderRequest) (*pr
 		return nil, errors.New("current status is not unpaid")
 	}
 
-	/*getGoodsReq := &goodspb.GetGoodsRequest{
+	// 测试，以后删除
+	conn, err := s.RedisPool.Get()
+	if err != nil {
+		logger.Error(err)
+		return nil, err
+	}
+	defer conn.Close()
+
+	conn.SetAdd(PayOrderPersonTime, order.BuyerID)
+	conn.ZsetAdd(PayOrderPersonTimeByTimestamp, order.BuyerID, time.Now().Unix())
+
+	getGoodsReq := &goodspb.GetGoodsRequest{
 		GoodsID: order.GoodsID,
 	}
 	getGoodsResp, err := s.GoodsServiceClient.GetGoods(ctx, getGoodsReq)
@@ -154,7 +166,7 @@ func (s *Service) PayOrder(ctx context.Context, req *proto.PayOrderRequest) (*pr
 	}
 	if getGoodsResp.GoodsInfo.Stock < int32(order.Count) {
 		return nil, errors.New("stock number is not enough")
-	}*/
+	}
 
 	// pay(order.Price)
 	// 支付成功
@@ -200,7 +212,9 @@ func (s *Service) PayOrder(ctx context.Context, req *proto.PayOrderRequest) (*pr
 }
 
 const (
-	ActivityPrefix = "ActivityPrefix"
+	ActivityPrefix                = "ActivityPrefix"
+	PayOrderPersonTime            = "PayOrderPersonTime"            // 历史支付人次,一个人算一次
+	PayOrderPersonTimeByTimestamp = "PayOrderPersonTimeByTimestamp" // 历史支付人次,一个人算一次,按照时间戳排序
 )
 
 func (s *Service) SetActivity(ctx context.Context, req *proto.SetActivityRequest) (*proto.SetActivityResponse, error) {
@@ -270,5 +284,45 @@ func (s *Service) GetActivity(ctx context.Context, req *proto.GetActivityRequest
 		ActivityName: activityInfo["activityName"],
 		StartTime:    activityInfo["startTime"],
 		EndTime:      activityInfo["endTime"],
+	}, nil
+}
+
+func (s *Service) GetPayOrderPersonTime(ctx context.Context, req *proto.GetPayOrderPersonTimeRequest) (*proto.GetPayOrderPersonTimeResponse, error) {
+	conn, err := s.RedisPool.Get()
+	if err != nil {
+		logger.Error(err)
+		return nil, err
+	}
+	defer conn.Close()
+
+	personTime, err := conn.SetLen(PayOrderPersonTime)
+	if err != nil {
+		logger.Error(err)
+		return nil, err
+	}
+
+	personList, err := conn.SetMembers(PayOrderPersonTime)
+	if err != nil {
+		logger.Error(err)
+		return nil, err
+	}
+
+	personTimeByTimestamp, err := conn.ZsetLen(PayOrderPersonTimeByTimestamp)
+	if err != nil {
+		logger.Error(err)
+		return nil, err
+	}
+
+	personListMap, err := conn.ZsetMembers(PayOrderPersonTimeByTimestamp)
+	if err != nil {
+		logger.Error(err)
+		return nil, err
+	}
+
+	return &proto.GetPayOrderPersonTimeResponse{
+		PersonTime:            personTime,
+		PersonList:            personList,
+		PersonTimeByTimestamp: personTimeByTimestamp,
+		PersonListMap:         personListMap,
 	}, nil
 }
