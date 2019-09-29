@@ -47,6 +47,13 @@ type RedisConfig struct {
 	RedisLockTimeout int64  `yaml:"redisLockTimeout" json:"redisLockTimeout"`
 }
 
+type MongoConfig struct {
+	Address  string `yaml:"address" json:"address"`
+	Username string `yaml:"username" json:"username"`
+	Password string `yaml:"password" json:"password"`
+	DbName   string `yaml:"dbName" json:"dbName"`
+}
+
 type Config struct {
 	Log        *LogConfig        `yaml:"log" json:"log"`
 	Etcd       *EtcdConfig       `yaml:"etcd" json:"etcd"`
@@ -55,6 +62,7 @@ type Config struct {
 	Database   *DatabaseConfig   `yaml:"database" json:"database"`
 	Client     *ClientConfig     `yaml:"client" json:"client"`
 	Redis      *RedisConfig      `yaml:"redis" json:"redis"`
+	Mongo      *MongoConfig      `yaml:"mongo" json:"mongo"`
 }
 
 func getConfig() (*Config, error) {

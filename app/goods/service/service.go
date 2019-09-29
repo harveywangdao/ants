@@ -8,11 +8,13 @@ import (
 	"time"
 
 	"github.com/harveywangdao/ants/cache/redis"
+	"github.com/harveywangdao/ants/database/mgo"
 	"github.com/harveywangdao/ants/logger"
 	"github.com/harveywangdao/ants/register"
 	"github.com/harveywangdao/ants/register/discovery"
 	proto "github.com/harveywangdao/ants/rpc/goods"
 	"github.com/harveywangdao/ants/util"
+	"go.mongodb.org/mongo-driver/mongo"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 
@@ -24,6 +26,7 @@ type Service struct {
 	discovery *discovery.Discovery
 	db        *gorm.DB
 	RedisPool *redis.RedisPool
+	Mongo     *mongo.Client
 }
 
 var (
@@ -83,6 +86,14 @@ func initService() error {
 		return err
 	}
 	App.RedisPool = pool
+
+	// MongoDB
+	mgodb, err := mgo.NewMgoClient(App.Config.Mongo.Address, App.Config.Mongo.Username, App.Config.Mongo.Password)
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+	App.Mongo = mgodb
 
 	return nil
 }

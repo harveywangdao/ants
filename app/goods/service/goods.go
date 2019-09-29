@@ -10,7 +10,92 @@ import (
 	"github.com/harveywangdao/ants/logger"
 	proto "github.com/harveywangdao/ants/rpc/goods"
 	"github.com/harveywangdao/ants/util"
+	"go.mongodb.org/mongo-driver/bson"
 )
+
+func (s *Service) AddGoodsIntoMgo(ctx context.Context, goods *model.GoogsModel) error {
+	collection := s.Mongo.Database(s.Config.Mongo.DbName).Collection("product_col")
+
+	// db
+	dbs, err := s.Mongo.ListDatabases(context.Background(), bson.M{})
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+	logger.Info("dbs:", dbs)
+
+	// collection
+	collections, err := s.Mongo.Database(s.Config.Mongo.DbName).ListCollectionNames(context.Background(), bson.M{})
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+	logger.Info("collections:", collections)
+
+	// insert
+	insertOneResult, err := collection.InsertOne(context.Background(), bson.M{
+		"goods_id":   goods.GoodsID,
+		"seller_id":  goods.SellerID,
+		"goods_name": goods.GoodsName,
+		"price":      goods.Price,
+		"category":   goods.Category,
+		"stock":      goods.Stock,
+		"brand":      goods.Brand,
+		"remark":     goods.Remark,
+	})
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+	logger.Info("mgo insert result:", *insertOneResult)
+
+	// query
+	findOneResult := map[string]interface{}{}
+	err = collection.FindOne(context.Background(), bson.M{
+		"goods_id": goods.GoodsID,
+	}).Decode(&findOneResult)
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+	logger.Info("mgo query result:", findOneResult)
+
+	// update
+	updateResult, err := collection.UpdateOne(context.Background(), bson.D{{"goods_id", goods.GoodsID}}, bson.D{
+		{"$set", bson.D{{"goods_name", "青龙偃月刀"}, {"brand", "三国"}}},
+	})
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+	logger.Info("mgo update result:", *updateResult)
+
+	findOneResult = map[string]interface{}{}
+	err = collection.FindOne(context.Background(), bson.M{"goods_id": goods.GoodsID}).Decode(&findOneResult)
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+	logger.Info("mgo query after update result:", findOneResult)
+
+	// delete
+	deleteResult, err := collection.DeleteOne(context.Background(), bson.D{{"goods_id", goods.GoodsID}})
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+	logger.Info("mgo delete result:", *deleteResult)
+
+	findOneResult = map[string]interface{}{}
+	err = collection.FindOne(context.Background(), bson.M{"goods_id": goods.GoodsID}).Decode(&findOneResult)
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+	logger.Info("mgo query after delete result:", findOneResult)
+
+	return nil
+}
 
 func (s *Service) AddGoods(ctx context.Context, req *proto.AddGoodsRequest) (*proto.AddGoodsResponse, error) {
 	if req.Name == "" {
@@ -33,6 +118,9 @@ func (s *Service) AddGoods(ctx context.Context, req *proto.AddGoodsRequest) (*pr
 		logger.Error(err)
 		return nil, err
 	}
+
+	// MongoDB
+	s.AddGoodsIntoMgo(ctx, goods)
 
 	return &proto.AddGoodsResponse{
 		GoodsID: goodsID,
