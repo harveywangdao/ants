@@ -29,7 +29,7 @@ redis:
   redisLockTimeout: 5     #分布式锁超时时间,单位秒
 
 mongo:
-  address: localhost:10001
+  address: 192.168.1.10:10001
   username: admin
   password: 123456
   dbName: ant_test
