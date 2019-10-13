@@ -48,6 +48,10 @@ type RedisConfig struct {
 	RedisLockTimeout int64  `yaml:"redisLockTimeout" json:"redisLockTimeout"`
 }
 
+type KafkaConfig struct {
+	Addrs []string `yaml:"addrs" json:"addrs"`
+}
+
 type Config struct {
 	Log        *LogConfig        `yaml:"log" json:"log"`
 	Etcd       *EtcdConfig       `yaml:"etcd" json:"etcd"`
@@ -56,6 +60,7 @@ type Config struct {
 	Database   *DatabaseConfig   `yaml:"database" json:"database"`
 	Client     *ClientConfig     `yaml:"client" json:"client"`
 	Redis      *RedisConfig      `yaml:"redis" json:"redis"`
+	Kafka      *KafkaConfig      `yaml:"kafka" json:"kafka"`
 }
 
 func getConfig() (*Config, error) {

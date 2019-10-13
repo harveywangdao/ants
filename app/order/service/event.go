@@ -6,6 +6,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/Shopify/sarama"
 	"github.com/gomodule/redigo/redis"
 	"github.com/harveywangdao/ants/app/order/model"
 	"github.com/harveywangdao/ants/common"
@@ -105,6 +106,116 @@ func DeductStockEventStartListen(s *Service) {
 			}
 		}
 	}()
+
+	/*go func() {
+		consumer, err := sarama.NewConsumer(s.Config.Kafka.Addrs, nil)
+		if err != nil {
+			logger.Error(err)
+			return
+		}
+
+		defer func() {
+			if err := consumer.Close(); err != nil {
+				logger.Error(err)
+			}
+		}()
+
+		partitionConsumer, err := consumer.ConsumePartition("xiaoming", 0, sarama.OffsetNewest)
+		if err != nil {
+			logger.Error(err)
+			return
+		}
+
+		defer func() {
+			if err := partitionConsumer.Close(); err != nil {
+				logger.Error(err)
+			}
+		}()
+
+		for {
+			select {
+			case msg := <-partitionConsumer.Messages():
+				logger.Info("Consumed message partition", msg.Partition, "offset", msg.Offset)
+				if err := s.deductStockEvent(msg.Value); err != nil {
+					logger.Error(err)
+
+				}
+			}
+		}
+	}()*/
+
+	go func() {
+		config := sarama.NewConfig()
+		config.Version = sarama.V2_2_0_0
+		config.Consumer.Return.Errors = true
+		config.Consumer.Group.Rebalance.Strategy = sarama.BalanceStrategyRoundRobin
+
+		client, err := sarama.NewClient(s.Config.Kafka.Addrs, config)
+		if err != nil {
+			logger.Error(err)
+			return
+		}
+		defer func() { _ = client.Close() }()
+
+		group, err := sarama.NewConsumerGroupFromClient("my-group-1", client)
+		if err != nil {
+			logger.Error(err)
+			return
+		}
+		defer func() { _ = group.Close() }()
+
+		go func() {
+			for err := range group.Errors() {
+				logger.Error("ERROR", err)
+			}
+		}()
+
+		ctx := context.Background()
+
+		for {
+			topics := []string{"xiaoming"}
+			handler := consumerGroupHandler{Service: s}
+
+			logger.Info("group.Consume start")
+			err := group.Consume(ctx, topics, handler)
+			if err != nil {
+				logger.Error(err)
+				return
+			}
+			logger.Info("group.Consume stop")
+		}
+	}()
+}
+
+type consumerGroupHandler struct {
+	Service *Service
+}
+
+func (consumerGroupHandler) Setup(_ sarama.ConsumerGroupSession) error {
+	logger.Info("group.Consume Setup")
+	return nil
+}
+
+func (consumerGroupHandler) Cleanup(_ sarama.ConsumerGroupSession) error {
+	logger.Info("group.Consume Cleanup")
+	return nil
+}
+
+func (h consumerGroupHandler) ConsumeClaim(sess sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
+	for msg := range claim.Messages() {
+		logger.Infof("Message topic:%s partition:%d offset:%d\n", msg.Topic, msg.Partition, msg.Offset)
+
+		if err := h.Service.deductStockEvent(msg.Value); err != nil {
+			logger.Error(err)
+			//sess.ResetOffset(msg.Topic, msg.Partition, msg.Offset, "")
+			time.Sleep(1 * time.Second)
+			return err
+		}
+
+		sess.MarkMessage(msg, "")
+	}
+
+	return nil
 }
 
 func (s *Service) deductStockEvent(data []byte) error {
@@ -219,6 +330,45 @@ func (s *Service) publishDeductStockChannel(ctx context.Context, req *proto.PayO
 		logger.Error(err)
 		return err
 	}
+
+	return nil
+}
+
+func (s *Service) produceDeductStockMsg(ctx context.Context, req *proto.PayOrderRequest) error {
+	data, err := json.Marshal(req)
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+
+	config := sarama.NewConfig()
+	config.Producer.Partitioner = sarama.NewRandomPartitioner
+	config.Producer.Return.Successes = true
+
+	producer, err := sarama.NewSyncProducer(s.Config.Kafka.Addrs, config)
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+	defer func() {
+		if err := producer.Close(); err != nil {
+			logger.Error(err)
+		}
+	}()
+
+	msg := &sarama.ProducerMessage{
+		Topic: "xiaoming",
+		Key:   sarama.StringEncoder("DeductStock"),
+		Value: sarama.ByteEncoder(data),
+	}
+
+	partition, offset, err := producer.SendMessage(msg)
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+
+	logger.Info("Produced message to partition", partition, "with offset", offset)
 
 	return nil
 }

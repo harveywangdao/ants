@@ -17,7 +17,7 @@ httpServer:
   port: 4584
 
 database:
-  address: 127.0.0.1:3306
+  address: 192.168.1.100:3306
   username: root
   password: 180498
   driverName: mysql
@@ -27,6 +27,12 @@ redis:
   address: 192.168.1.7:7001
   password: 123456
   redisLockTimeout: 5     #分布式锁超时时间,单位秒
+
+kafka:
+  addrs: 
+    - 192.168.1.7:9092
+    - 192.168.1.10:9092
+    - 192.168.1.11:9092
 
 client:
   userServiceName: user-core-service

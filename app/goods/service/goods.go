@@ -120,7 +120,7 @@ func (s *Service) AddGoods(ctx context.Context, req *proto.AddGoodsRequest) (*pr
 	}
 
 	// MongoDB
-	s.AddGoodsIntoMgo(ctx, goods)
+	//s.AddGoodsIntoMgo(ctx, goods)
 
 	return &proto.AddGoodsResponse{
 		GoodsID: goodsID,
