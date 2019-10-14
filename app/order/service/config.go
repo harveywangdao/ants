@@ -53,7 +53,8 @@ type KafkaConfig struct {
 }
 
 type NsqConfig struct {
-	Addrs []string `yaml:"addrs" json:"addrs"`
+	LookupdAddrs []string `yaml:"lookupdAddrs" json:"lookupdAddrs"`
+	NodeAddrs    []string `yaml:"nodeAddrs" json:"nodeAddrs"`
 }
 
 type Config struct {

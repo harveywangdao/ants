@@ -190,8 +190,9 @@ func DeductStockEventStartListen(s *Service) {
 	go func() {
 		config := nsq.NewConfig()
 		config.DefaultRequeueDelay = time.Second * 5
+		config.LookupdPollInterval = time.Second * 5
 		config.MaxBackoffDuration = 50 * time.Millisecond
-		consumer, err := nsq.NewConsumer("nsq_topic_DeductStock", "channel-1", config)
+		consumer, err := nsq.NewConsumer("nsq_topic_DeductStock3", "channel-1", config)
 		if err != nil {
 			logger.Error(err)
 			return
@@ -204,7 +205,12 @@ func DeductStockEventStartListen(s *Service) {
 		}
 		consumer.AddHandler(h)
 
-		err = consumer.ConnectToNSQD(s.Config.Nsq.Addrs[0])
+		/*err = consumer.ConnectToNSQD(s.Config.Nsq.NodeAddrs[0])
+		if err != nil {
+			logger.Error(err)
+			return
+		}*/
+		err = consumer.ConnectToNSQLookupd(s.Config.Nsq.LookupdAddrs[0])
 		if err != nil {
 			logger.Error(err)
 			return
@@ -247,7 +253,7 @@ func (s *Service) produceDeductStockNsqMsg(ctx context.Context, req *proto.PayOr
 	}
 
 	cfg := nsq.NewConfig()
-	producer, err := nsq.NewProducer(s.Config.Nsq.Addrs[0], cfg)
+	producer, err := nsq.NewProducer(s.Config.Nsq.NodeAddrs[1], cfg)
 	if err != nil {
 		logger.Error(err)
 		return err
@@ -255,7 +261,7 @@ func (s *Service) produceDeductStockNsqMsg(ctx context.Context, req *proto.PayOr
 	defer producer.Stop()
 	producer.SetLogger(nil, nsq.LogLevelError)
 
-	err = producer.Publish("nsq_topic_DeductStock", data)
+	err = producer.Publish("nsq_topic_DeductStock3", data)
 	if err != nil {
 		logger.Error(err)
 		return err

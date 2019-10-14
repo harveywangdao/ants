@@ -35,8 +35,12 @@ kafka:
     - 192.168.1.11:9092
 
 nsq:
-  addrs: 
-    - 192.168.1.7:4150
+  lookupdAddrs: 
+    - 192.168.1.7:4161
+  nodeAddrs: 
+    - 192.168.1.7:4601
+    - 192.168.1.7:4602
+    - 192.168.1.7:4603
 
 client:
   userServiceName: user-core-service
