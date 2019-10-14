@@ -14,6 +14,7 @@ import (
 	goodspb "github.com/harveywangdao/ants/rpc/goods"
 	proto "github.com/harveywangdao/ants/rpc/order"
 	"github.com/harveywangdao/ants/util"
+	nsq "github.com/nsqio/go-nsq"
 )
 
 const (
@@ -98,7 +99,7 @@ func DeductStockEventStartListen(s *Service) {
 			case redis.Subscription:
 				switch n.Count {
 				case len(channels):
-					logger.Info(channels, "subscribe success")
+					logger.Debug(channels, "subscribe success")
 				case 0:
 					logger.Error(channels, "subscribe fail")
 					return
@@ -176,15 +177,91 @@ func DeductStockEventStartListen(s *Service) {
 			topics := []string{"xiaoming"}
 			handler := consumerGroupHandler{Service: s}
 
-			logger.Info("group.Consume start")
+			logger.Debug("group.Consume start")
 			err := group.Consume(ctx, topics, handler)
 			if err != nil {
 				logger.Error(err)
 				return
 			}
-			logger.Info("group.Consume stop")
+			logger.Debug("group.Consume stop")
 		}
 	}()
+
+	go func() {
+		config := nsq.NewConfig()
+		config.DefaultRequeueDelay = time.Second * 5
+		config.MaxBackoffDuration = 50 * time.Millisecond
+		consumer, err := nsq.NewConsumer("nsq_topic_DeductStock", "channel-1", config)
+		if err != nil {
+			logger.Error(err)
+			return
+		}
+		consumer.SetLogger(nil, nsq.LogLevelError)
+
+		h := &nsqHandler{
+			Service:  s,
+			Consumer: consumer,
+		}
+		consumer.AddHandler(h)
+
+		err = consumer.ConnectToNSQD(s.Config.Nsq.Addrs[0])
+		if err != nil {
+			logger.Error(err)
+			return
+		}
+
+		logger.Infof("%+v\n", consumer.Stats())
+
+		<-consumer.StopChan
+
+		logger.Info("nsq consumer stop")
+	}()
+}
+
+type nsqHandler struct {
+	Service  *Service
+	Consumer *nsq.Consumer
+}
+
+func (h *nsqHandler) HandleMessage(msg *nsq.Message) error {
+	logger.Info(msg.ID, msg.Timestamp, msg.Attempts, string(msg.Body))
+
+	if err := h.Service.deductStockEvent(msg.Body); err != nil {
+		logger.Error(err)
+		return err
+	}
+
+	return nil
+}
+
+func (h *nsqHandler) LogFailedMessage(msg *nsq.Message) {
+	logger.Info("Consumer Stop")
+	//h.Consumer.Stop()
+}
+
+func (s *Service) produceDeductStockNsqMsg(ctx context.Context, req *proto.PayOrderRequest) error {
+	data, err := json.Marshal(req)
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+
+	cfg := nsq.NewConfig()
+	producer, err := nsq.NewProducer(s.Config.Nsq.Addrs[0], cfg)
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+	defer producer.Stop()
+	producer.SetLogger(nil, nsq.LogLevelError)
+
+	err = producer.Publish("nsq_topic_DeductStock", data)
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+
+	return nil
 }
 
 type consumerGroupHandler struct {
@@ -192,12 +269,12 @@ type consumerGroupHandler struct {
 }
 
 func (consumerGroupHandler) Setup(_ sarama.ConsumerGroupSession) error {
-	logger.Info("group.Consume Setup")
+	logger.Debug("group.Consume Setup")
 	return nil
 }
 
 func (consumerGroupHandler) Cleanup(_ sarama.ConsumerGroupSession) error {
-	logger.Info("group.Consume Cleanup")
+	logger.Debug("group.Consume Cleanup")
 	return nil
 }
 

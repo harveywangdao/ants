@@ -52,6 +52,10 @@ type KafkaConfig struct {
 	Addrs []string `yaml:"addrs" json:"addrs"`
 }
 
+type NsqConfig struct {
+	Addrs []string `yaml:"addrs" json:"addrs"`
+}
+
 type Config struct {
 	Log        *LogConfig        `yaml:"log" json:"log"`
 	Etcd       *EtcdConfig       `yaml:"etcd" json:"etcd"`
@@ -61,6 +65,7 @@ type Config struct {
 	Client     *ClientConfig     `yaml:"client" json:"client"`
 	Redis      *RedisConfig      `yaml:"redis" json:"redis"`
 	Kafka      *KafkaConfig      `yaml:"kafka" json:"kafka"`
+	Nsq        *NsqConfig        `yaml:"nsq" json:"nsq"`
 }
 
 func getConfig() (*Config, error) {

@@ -185,7 +185,8 @@ func (s *Service) PayOrder(ctx context.Context, req *proto.PayOrderRequest) (*pr
 		// 2.支付成功，扣库存失败(库存足)，抛消息队列
 		// s.pushDeductStockEvent(ctx, req)
 		// s.publishDeductStockChannel(ctx, req)
-		s.produceDeductStockMsg(ctx, req)
+		// s.produceDeductStockMsg(ctx, req)
+		s.produceDeductStockNsqMsg(ctx, req)
 		return nil, err
 	}
 
