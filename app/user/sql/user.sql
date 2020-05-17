@@ -15,6 +15,6 @@ CREATE TABLE IF NOT EXISTS `user_tb`(
    INDEX `index_email` (`email`),
    UNIQUE INDEX `unique_user_id` (`user_id`),
    UNIQUE INDEX `unique_phone_number` (`phone_number`)
-)ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT '学生表';
+)ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT '用户表';
 
 INSERT INTO `ant_test`.`user_tb`(`user_id`, `name`, `phone_number`) VALUES ('fsadfgsdfsadf', 'dfd', '342342');
