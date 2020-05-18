@@ -1,8 +1,8 @@
 package main
 
 import (
+	"github.com/harveywangdao/ants/app/gateway/service"
 	"github.com/harveywangdao/ants/logger"
-	"github.com/harveywangdao/ants/register"
 	"log"
 )
 
@@ -16,21 +16,7 @@ func init() {
 }
 
 func main() {
-	err := initConfig()
-	if err != nil {
-		logger.Error(err)
-		return
-	}
-
-	reg, err := register.NewRegister(getConf().Etcd.Endpoints, getConf().Server.Port, getConf().Server.Name)
-	if err != nil {
-		logger.Error(err)
-		return
-	}
-	reg.Start()
-
-	go StartHttpServer(getConf().HttpServer.Port, getConf().HttpServer.PrefixUrl)
-
-	select {}
-	logger.Info("Server exit")
+	logger.Info("Start Server")
+	service.StartService()
+	logger.Info("Stop Server")
 }

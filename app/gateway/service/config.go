@@ -1,4 +1,4 @@
-package main
+package service
 
 import (
 	"encoding/json"
@@ -32,16 +32,11 @@ type HttpServerConfig struct {
 	PrefixUrl string `yaml:"prefixUrl" json:"prefixUrl"`
 }
 
-type ClientConfig struct {
-	AntServiceName string `yaml:"antServiceName" json:"antServiceName"`
-}
-
 type Config struct {
 	Log        *LogConfig        `yaml:"log" json:"log"`
 	Etcd       *EtcdConfig       `yaml:"etcd" json:"etcd"`
 	Server     *ServerConfig     `yaml:"server" json:"server"`
 	HttpServer *HttpServerConfig `yaml:"httpServer" json:"httpServer"`
-	Client     *ClientConfig     `yaml:"client" json:"client"`
 }
 
 func initConfig() error {

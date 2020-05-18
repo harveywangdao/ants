@@ -1,4 +1,4 @@
-package main
+package service
 
 import (
 	"github.com/harveywangdao/ants/logger"
@@ -33,7 +33,6 @@ func (s *gatewayHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		logger.Error(err)
 		return
 	}
-	//r.Body.Close()
 	logger.Info("body:", string(body))
 
 	dis, err := discovery.NewDiscovery(getConf().Etcd.Endpoints)
@@ -43,7 +42,7 @@ func (s *gatewayHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if r.Form.Get(svc) == "" || r.Form.Get(grpcsvc) == "" || r.Form.Get(method) == "" {
-		logger.Error("param lack")
+		logger.Error("param error")
 		return
 	}
 

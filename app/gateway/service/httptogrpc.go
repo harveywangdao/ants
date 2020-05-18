@@ -1,4 +1,4 @@
-package main
+package service
 
 import (
 	"context"
@@ -51,7 +51,7 @@ func httpToGrpc(dis *discovery.Discovery, svcName, grpcSvcName, method string, r
 	}
 	logger.Info("services:", svcs)
 
-	fullSvcName := ""
+	var fullSvcName string
 	for _, svc := range svcs {
 		if strings.Contains(svc, grpcSvcName) {
 			fullSvcName = svc
