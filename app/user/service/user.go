@@ -178,6 +178,7 @@ func (s *Service) Login(ctx context.Context, req *userpb.LoginRequest) (*userpb.
 	}
 
 	return &userpb.LoginResponse{
+                UserID: userInfo.Openid,
 		CodeMsg: "login success",
 	}, nil
 }

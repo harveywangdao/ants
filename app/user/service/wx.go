@@ -1,11 +1,9 @@
 package service
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"github.com/harveywangdao/ants/logger"
-	antpb "github.com/harveywangdao/ants/rpc/ant"
 	"io/ioutil"
 	"net/http"
 )
