@@ -165,3 +165,19 @@ func (s *Service) DelUser(ctx context.Context, req *userpb.DelUserRequest) (*use
 		CodeMsg: "delete success",
 	}, nil
 }
+
+func (s *Service) Login(ctx context.Context, req *userpb.LoginRequest) (*userpb.LoginResponse, error) {
+	if req.Code == "" {
+		return nil, errors.New("code is null")
+	}
+
+	userInfo, err := code2Session(req.Code)
+	if err != nil {
+		logger.Error(err)
+		return nil, err
+	}
+
+	return &userpb.LoginResponse{
+		CodeMsg: "login success",
+	}, nil
+}
