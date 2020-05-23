@@ -203,7 +203,7 @@ func (s *Service) Login(ctx context.Context, req *userpb.LoginRequest) (*userpb.
 			return nil, err
 		}
 	}
-	logger.Info(*user)
+	logger.Infof("%+v", user)
 
 	return &userpb.LoginResponse{
 		UserID:  user.UserID,
