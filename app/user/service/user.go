@@ -199,9 +199,9 @@ func (s *Service) Login(ctx context.Context, req *userpb.LoginRequest) (*userpb.
 				logger.Error(err)
 				return nil, err
 			}
+		} else {
+			return nil, err
 		}
-
-		return nil, err
 	}
 	logger.Info(user)
 
