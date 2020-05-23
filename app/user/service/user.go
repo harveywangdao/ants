@@ -8,6 +8,7 @@ import (
 	"github.com/harveywangdao/ants/logger"
 	userpb "github.com/harveywangdao/ants/rpc/user"
 	"github.com/harveywangdao/ants/util"
+	"github.com/jinzhu/gorm"
 )
 
 func (s *Service) AddUser(ctx context.Context, req *userpb.AddUserRequest) (*userpb.AddUserResponse, error) {
@@ -170,6 +171,7 @@ func (s *Service) Login(ctx context.Context, req *userpb.LoginRequest) (*userpb.
 	if req.Code == "" {
 		return nil, errors.New("code is null")
 	}
+	logger.Info("wx code:", req.Code)
 
 	userInfo, err := code2Session(req.Code)
 	if err != nil {
@@ -177,8 +179,34 @@ func (s *Service) Login(ctx context.Context, req *userpb.LoginRequest) (*userpb.
 		return nil, err
 	}
 
+	if userInfo.Openid == "" {
+		logger.Error("openid is null, wx code:", req.Code)
+		return nil, errors.New("openid is null")
+	}
+
+	user := &model.UserModel{}
+	if err := s.db.Where("open_id = ?", userInfo.Openid).First(user).Error; err != nil {
+		logger.Error(err)
+
+		if err == gorm.ErrRecordNotFound {
+			user = &model.UserModel{
+				UserID:  util.GetUUID(),
+				OpenID:  userInfo.Openid,
+				UnionID: userInfo.Unionid,
+			}
+
+			if err := s.db.Create(user).Error; err != nil {
+				logger.Error(err)
+				return nil, err
+			}
+		}
+
+		return nil, err
+	}
+	logger.Info(user)
+
 	return &userpb.LoginResponse{
-                UserID: userInfo.Openid,
+		UserID:  user.UserID,
 		CodeMsg: "login success",
 	}, nil
 }

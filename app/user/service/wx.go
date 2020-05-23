@@ -14,11 +14,11 @@ const (
 )
 
 type WxUserInfo struct {
-	Openid     string `json:"openid"`
-	SessionKey string `json:"session_key"`
-	Unionid    string `json:"unionid"`
-	Errcode    int    `json:"errcode"`
-	Errmsg     string `json:"errmsg"`
+	Openid     string `json:"openid,omitempty"`
+	SessionKey string `json:"session_key,omitempty"`
+	Unionid    string `json:"unionid,omitempty"`
+	Errcode    int    `json:"errcode,omitempty"`
+	Errmsg     string `json:"errmsg,omitempty"`
 }
 
 func code2Session(code string) (*WxUserInfo, error) {
