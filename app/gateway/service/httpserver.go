@@ -49,6 +49,7 @@ func (s *gatewayHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	resp, err := httpToGrpc(dis, r.Form.Get(svc), r.Form.Get(grpcsvc), r.Form.Get(method), body)
 	if err != nil {
 		logger.Error(err)
+		w.Write([]byte(err.Error()))
 		return
 	}
 
