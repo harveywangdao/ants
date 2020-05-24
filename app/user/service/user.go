@@ -171,6 +171,7 @@ func (s *Service) Login(ctx context.Context, req *userpb.LoginRequest) (*userpb.
 	if req.WxUserInfo == nil {
 		return nil, errors.New("WxUserInfo is null")
 	}
+	logger.Infof("WxUserInfo: %+v", req.WxUserInfo)
 
 	if req.WxUserInfo.Code == "" {
 		return nil, errors.New("code is null")

@@ -25,5 +25,5 @@ CREATE TABLE IF NOT EXISTS `user_tb`(
 mysql -u root -p
 use ant_test;
 DROP TABLE user_tb;
-TRUNCATE TABLE user_tb；
+TRUNCATE TABLE user_tb;
 INSERT INTO `ant_test`.`user_tb`(`user_id`, `name`, `phone_number`) VALUES ('fsadfgsdfsadf', 'dfd', '342342');
