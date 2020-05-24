@@ -168,21 +168,37 @@ func (s *Service) DelUser(ctx context.Context, req *userpb.DelUserRequest) (*use
 }
 
 func (s *Service) Login(ctx context.Context, req *userpb.LoginRequest) (*userpb.LoginResponse, error) {
-	if req.Code == "" {
+	if req.WxUserInfo == nil {
+		return nil, errors.New("WxUserInfo is null")
+	}
+
+	if req.WxUserInfo.Code == "" {
 		return nil, errors.New("code is null")
 	}
-	logger.Info("wx code:", req.Code)
+	logger.Info("wx code:", req.WxUserInfo.Code)
 
-	userInfo, err := code2Session(req.Code)
+	userInfo, err := code2Session(req.WxUserInfo.Code)
 	if err != nil {
 		logger.Error(err)
 		return nil, err
 	}
 
 	if userInfo.Openid == "" {
-		logger.Error("openid is null, wx code:", req.Code)
+		logger.Error("openid is null, wx code:", req.WxUserInfo.Code)
 		return nil, errors.New("openid is null")
 	}
+
+	if !checkWxUserInfoSign(req.WxUserInfo.RawData, userInfo.SessionKey, req.WxUserInfo.Signature) {
+		logger.Error("wx user info sign fail")
+		return nil, errors.New("wx user info sign fail")
+	}
+
+	wxUserInfoData, err := decryptWxUserInfo(req.WxUserInfo.EncryptedData, req.WxUserInfo.Iv, userInfo.SessionKey)
+	if err != nil {
+		logger.Error(err)
+		return nil, err
+	}
+	logger.Info("wxUserInfoData:", string(wxUserInfoData))
 
 	user := &model.UserModel{}
 	if err := s.db.Where("open_id = ?", userInfo.Openid).First(user).Error; err != nil {
@@ -190,9 +206,10 @@ func (s *Service) Login(ctx context.Context, req *userpb.LoginRequest) (*userpb.
 
 		if err == gorm.ErrRecordNotFound {
 			user = &model.UserModel{
-				UserID:  util.GetUUID(),
-				OpenID:  userInfo.Openid,
-				UnionID: userInfo.Unionid,
+				UserID:     util.GetUUID(),
+				OpenID:     userInfo.Openid,
+				UnionID:    userInfo.Unionid,
+				SessionKey: userInfo.SessionKey,
 			}
 
 			if err := s.db.Create(user).Error; err != nil {

@@ -12,12 +12,20 @@ service UserService {
   rpc Login(LoginRequest) returns (LoginResponse) {}
 }
 
+message WxUserInfo {
+  string rawData = 1;
+  string signature = 2;
+  string encryptedData = 3;
+  string iv = 4;
+  string code = 5;
+}
+
 message LoginRequest {
   string name = 1;
   string identityNo = 2;
   string phoneNumber = 3;
   string email = 4;
-  string code = 5;
+  WxUserInfo wxUserInfo = 5;
 }
 
 message LoginResponse {

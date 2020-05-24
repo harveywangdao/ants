@@ -1,8 +1,9 @@
 CREATE TABLE IF NOT EXISTS `user_tb`(
    `id` BIGINT(20) NOT NULL AUTO_INCREMENT COMMENT '主键',
    `user_id` VARCHAR(50) NOT NULL COMMENT '唯一标识',
-   `open_id` VARCHAR(50) NOT NULL DEFAULT '' COMMENT '小程序openid',
-   `union_id` VARCHAR(50) NOT NULL DEFAULT '' COMMENT '小程序unionid',
+   `open_id` VARCHAR(100) NOT NULL DEFAULT '' COMMENT '小程序openid',
+   `union_id` VARCHAR(100) NOT NULL DEFAULT '' COMMENT '小程序unionid',
+   `session_key` VARCHAR(200) NOT NULL DEFAULT '' COMMENT '小程序session_key',
    `name` VARCHAR(50) NOT NULL DEFAULT '' COMMENT '姓名',
    `identity_no` VARCHAR(50) NOT NULL DEFAULT '' COMMENT '身份证号码',
    `age` INT(11) NOT NULL DEFAULT 0 COMMENT '年龄',

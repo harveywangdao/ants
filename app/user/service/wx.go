@@ -1,11 +1,16 @@
 package service
 
 import (
+	"crypto/sha1"
+	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"github.com/harveywangdao/ants/logger"
+	"github.com/harveywangdao/ants/util"
 	"io/ioutil"
 	"net/http"
+	"strings"
 )
 
 const (
@@ -58,4 +63,38 @@ func code2Session(code string) (*WxUserInfo, error) {
 	}
 
 	return &wxUserInfo, nil
+}
+
+func checkWxUserInfoSign(rawData, sessionKey, sign string) bool {
+	sh1 := sha1.Sum([]byte(rawData + sessionKey))
+	sign2 := hex.EncodeToString(sh1[:])
+	sign = strings.ToLower(sign)
+	sign2 = strings.ToLower(sign2)
+	return sign == sign2
+}
+
+func decryptWxUserInfo(encryptedData, iv, sessionKey string) ([]byte, error) {
+	ciphertext, err := base64.StdEncoding.DecodeString(encryptedData)
+	if err != nil {
+		logger.Error(err)
+		return nil, err
+	}
+	ivBytes, err := base64.StdEncoding.DecodeString(iv)
+	if err != nil {
+		logger.Error(err)
+		return nil, err
+	}
+	key, err := base64.StdEncoding.DecodeString(sessionKey)
+	if err != nil {
+		logger.Error(err)
+		return nil, err
+	}
+
+	plaintext, err := util.AesCBCDecrypt(ciphertext, key, ivBytes)
+	if err != nil {
+		logger.Error(err)
+		return nil, err
+	}
+
+	return plaintext, nil
 }

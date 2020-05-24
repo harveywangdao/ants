@@ -11,6 +11,7 @@ type UserModel struct {
 	UserID      string    `gorm:"column:user_id"`
 	OpenID      string    `gorm:"column:open_id"`
 	UnionID     string    `gorm:"column:union_id"`
+	SessionKey  string    `gorm:"column:session_key"`
 	Name        string    `gorm:"column:name"`
 	IdentityNo  string    `gorm:"column:identity_no"`
 	Age         uint32    `gorm:"column:age"`
