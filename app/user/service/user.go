@@ -220,6 +220,15 @@ func (s *Service) Login(ctx context.Context, req *userpb.LoginRequest) (*userpb.
 		} else {
 			return nil, err
 		}
+	} else {
+		err = s.db.Model(model.UserModel{}).Where("open_id = ?", userInfo.Openid).Updates(map[string]interface{}{
+			"session_key": userInfo.SessionKey,
+		}).Error
+		if err != nil {
+			logger.Error(err)
+			return nil, err
+		}
+		user.SessionKey = userInfo.SessionKey
 	}
 	logger.Infof("%+v", user)
 
