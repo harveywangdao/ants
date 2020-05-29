@@ -189,18 +189,6 @@ func (s *Service) Login(ctx context.Context, req *userpb.LoginRequest) (*userpb.
 		return nil, errors.New("openid is null")
 	}
 
-	if !checkWxUserInfoSign(req.WxUserInfo.RawData, userInfo.SessionKey, req.WxUserInfo.Signature) {
-		logger.Error("wx user info sign fail")
-		return nil, errors.New("wx user info sign fail")
-	}
-
-	wxUserInfoData, err := decryptWxUserInfo(req.WxUserInfo.EncryptedData, req.WxUserInfo.Iv, userInfo.SessionKey)
-	if err != nil {
-		logger.Error(err)
-		return nil, err
-	}
-	logger.Info("wxUserInfoData:", string(wxUserInfoData))
-
 	user := &model.UserModel{}
 	if err := s.db.Where("open_id = ?", userInfo.Openid).First(user).Error; err != nil {
 		logger.Error(err)
@@ -237,5 +225,35 @@ func (s *Service) Login(ctx context.Context, req *userpb.LoginRequest) (*userpb.
 	return &userpb.LoginResponse{
 		UserID:  user.UserID,
 		CodeMsg: "login success",
+	}, nil
+}
+
+func (s *Service) DecryptWxUserInfo(ctx context.Context, req *userpb.DecryptWxUserInfoRequest) (*userpb.DecryptWxUserInfoResponse, error) {
+	if req.UserID == "" || req.WxUserInfo == nil {
+		return nil, errors.New("params error")
+	}
+	logger.Infof("UserID: %s, WxUserInfo: %+v", req.UserID, req.WxUserInfo)
+
+	user := &model.UserModel{}
+	if err := s.db.Where("user_id = ?", req.UserID).First(user).Error; err != nil {
+		logger.Error(err)
+		return nil, err
+	}
+
+	if !checkWxUserInfoSign(req.WxUserInfo.RawData, user.SessionKey, req.WxUserInfo.Signature) {
+		logger.Error("wx user info sign fail")
+		return nil, errors.New("wx user info sign fail")
+	}
+
+	wxUserInfoData, err := decryptWxUserInfo(req.WxUserInfo.EncryptedData, req.WxUserInfo.Iv, user.SessionKey)
+	if err != nil {
+		logger.Error(err)
+		return nil, err
+	}
+	logger.Info("wxUserInfoData:", string(wxUserInfoData))
+
+	return &userpb.DecryptWxUserInfoResponse{
+		WxUserInfoData: string(wxUserInfoData),
+		CodeMsg:        "DecryptWxUserInfo success",
 	}, nil
 }

@@ -10,6 +10,7 @@ service UserService {
   rpc GetUserIdByPhoneNumber(GetUserIdByPhoneNumberRequest) returns (GetUserIdByPhoneNumberResponse) {}
   rpc GetUsersByName(GetUsersByNameRequest) returns (GetUsersByNameResponse) {}
   rpc Login(LoginRequest) returns (LoginResponse) {}
+  rpc DecryptWxUserInfo(DecryptWxUserInfoRequest) returns (DecryptWxUserInfoResponse) {}
 }
 
 message WxUserInfo {
@@ -18,6 +19,17 @@ message WxUserInfo {
   string encryptedData = 3;
   string iv = 4;
   string code = 5;
+}
+
+message DecryptWxUserInfoRequest {
+  string userID = 1;
+  WxUserInfo wxUserInfo = 2;
+}
+
+message DecryptWxUserInfoResponse {
+  uint32 code = 1;
+  string codeMsg = 2;
+  string wxUserInfoData = 3;
 }
 
 message LoginRequest {
