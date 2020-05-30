@@ -191,9 +191,10 @@ func (s *Service) Login(ctx context.Context, req *userpb.LoginRequest) (*userpb.
 
 	user := &model.UserModel{}
 	if err := s.db.Where("open_id = ?", userInfo.Openid).First(user).Error; err != nil {
-		logger.Error(err)
-
-		if err == gorm.ErrRecordNotFound {
+		if err != gorm.ErrRecordNotFound {
+			logger.Error(err)
+			return nil, err
+		} else {
 			user = &model.UserModel{
 				UserID:     util.GetUUID(),
 				OpenID:     userInfo.Openid,
@@ -205,8 +206,6 @@ func (s *Service) Login(ctx context.Context, req *userpb.LoginRequest) (*userpb.
 				logger.Error(err)
 				return nil, err
 			}
-		} else {
-			return nil, err
 		}
 	} else {
 		if user.SessionKey != userInfo.SessionKey {
@@ -255,5 +254,46 @@ func (s *Service) DecryptWxUserInfo(ctx context.Context, req *userpb.DecryptWxUs
 	return &userpb.DecryptWxUserInfoResponse{
 		WxUserInfoData: string(wxUserInfoData),
 		CodeMsg:        "DecryptWxUserInfo success",
+	}, nil
+}
+
+func (s *Service) AddUserInfo(ctx context.Context, req *userpb.AddUserInfoRequest) (*userpb.AddUserInfoResponse, error) {
+	if req.UserID == "" || req.UserInfo == nil {
+		return nil, errors.New("params error")
+	}
+	logger.Infof("UserID: %s, UserInfo: %+v", req.UserID, req.UserInfo)
+
+	user := &model.UserModel{}
+	if err := s.db.Where("user_id = ?", req.UserID).First(user).Error; err != nil {
+		logger.Error(err)
+		return nil, err
+	}
+
+	param := make(map[string]interface{})
+	param["age"] = req.UserInfo.Age
+	if req.UserInfo.Name != "" {
+		param["name"] = req.UserInfo.Name
+	}
+	if req.UserInfo.IdentityNo != "" {
+		param["identity_no"] = req.UserInfo.IdentityNo
+	}
+	if req.UserInfo.Gender == 0 || req.UserInfo.Gender == 1 {
+		param["gender"] = req.UserInfo.Gender
+	}
+	if req.UserInfo.Email != "" {
+		param["email"] = req.UserInfo.Email
+	}
+	if req.UserInfo.PhoneNumber != "" {
+		param["phone_number"] = req.UserInfo.PhoneNumber
+	}
+
+	err := s.db.Model(model.UserModel{}).Where("user_id = ?", req.UserID).Updates(param).Error
+	if err != nil {
+		logger.Error(err)
+		return nil, err
+	}
+
+	return &userpb.AddUserInfoResponse{
+		CodeMsg: "AddUserInfo success",
 	}, nil
 }

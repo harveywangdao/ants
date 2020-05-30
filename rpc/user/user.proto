@@ -11,6 +11,26 @@ service UserService {
   rpc GetUsersByName(GetUsersByNameRequest) returns (GetUsersByNameResponse) {}
   rpc Login(LoginRequest) returns (LoginResponse) {}
   rpc DecryptWxUserInfo(DecryptWxUserInfoRequest) returns (DecryptWxUserInfoResponse) {}
+  rpc AddUserInfo(AddUserInfoRequest) returns (AddUserInfoResponse) {}
+}
+
+message UserInfo {
+  string name = 1;
+  string identityNo = 2;
+  uint32 age = 3;
+  uint32 gender = 4;     // 0:male 1:female
+  string phoneNumber = 5;
+  string email = 6;
+}
+
+message AddUserInfoRequest {
+  string userID = 1;
+  UserInfo userInfo = 2;
+}
+
+message AddUserInfoResponse {
+  uint32 code = 1;
+  string codeMsg = 2;
 }
 
 message WxUserInfo {
@@ -44,15 +64,6 @@ message LoginResponse {
   uint32 code = 1;
   string codeMsg = 2;
   string userID = 3;
-}
-
-message UserInfo {
-  string name = 1;
-  string identityNo = 2;
-  uint32 age = 3;
-  uint32 gender = 4;     // 0:male 1:female
-  string phoneNumber = 5;
-  string email = 6;
 }
 
 message AddUserRequest {
