@@ -41,7 +41,7 @@ message GetArticleResponse {
 message GetArticleListRequest {
   int64 page = 1;
   int64 numPerPage = 2;
-  string lastArticleID = 3;
+  int64 lastArticleID = 3;
 }
 
 message GetArticleListResponse {

@@ -9,7 +9,6 @@ import (
 	"github.com/harveywangdao/ants/logger"
 	articlepb "github.com/harveywangdao/ants/rpc/article"
 	"github.com/harveywangdao/ants/util"
-	"github.com/jinzhu/gorm"
 )
 
 func (s *Service) AddArticle(ctx context.Context, req *articlepb.AddArticleRequest) (*articlepb.AddArticleResponse, error) {
@@ -64,19 +63,23 @@ func (s *Service) GetArticle(ctx context.Context, req *articlepb.GetArticleReque
 }
 
 func (s *Service) GetArticleList(ctx context.Context, req *articlepb.GetArticleListRequest) (*articlepb.GetArticleListResponse, error) {
-	if req.LastArticleID == "" && req.NumPerPage == 0 {
+	if req.NumPerPage <= 0 {
 		return nil, errors.New("param error")
 	}
 
 	var articles []*model.ArticleModel
 	var err error
-	if req.LastArticleID == "" {
+	if req.LastArticleID == 0 {
+		if req.Page < 0 {
+			return nil, errors.New("param error")
+		}
+
 		articles, err = model.GetArticlesByPage(s.db, req.Page, req.NumPerPage)
 		if err != nil {
 			logger.Error(err)
 			return nil, err
 		}
-	} else {
+	} else if req.LastArticleID > 0 {
 		articles, err = model.GetArticlesByPage3(s.db, req.LastArticleID, req.NumPerPage)
 		if err != nil {
 			logger.Error(err)
