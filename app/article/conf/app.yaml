@@ -1,0 +1,27 @@
+# app config
+log:
+  logPath: log/article_service.log            # 日志文件路径
+  logLevel: info
+
+etcd:
+  endpoints:
+    - 192.168.1.7:2379
+    - 192.168.1.10:2379
+    - 192.168.1.11:2379
+
+server:
+  name: article-core-service
+  port: 6072
+
+httpServer:
+  port: 4585
+
+database:
+  address: 192.168.1.100:3306
+  username: root
+  password: 180498
+  driverName: mysql
+  dbName: ant_test
+
+client:
+  userServiceName: user-core-service
