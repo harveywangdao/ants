@@ -10,7 +10,7 @@ import (
 	"github.com/harveywangdao/ants/logger"
 	"github.com/harveywangdao/ants/register"
 	"github.com/harveywangdao/ants/register/discovery"
-	userpb "github.com/harveywangdao/ants/rpc/user"
+	articlepb "github.com/harveywangdao/ants/rpc/article"
 	"github.com/harveywangdao/ants/util"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
@@ -98,7 +98,7 @@ func StartService() error {
 	logger.Info("rpc server:", lis.Addr())
 
 	s := grpc.NewServer()
-	userpb.RegisterUserServiceServer(s, App)
+	articlepb.RegisterArticleServiceServer(s, App)
 	reflection.Register(s)
 
 	if err := s.Serve(lis); err != nil {
