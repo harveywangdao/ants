@@ -56,7 +56,7 @@ func (s *gatewayHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Write(resp)
 }
 
-func StartHttpServer(port, prefixUrl string) {
+func listenHttp(port, prefixUrl string) {
 	mux := http.NewServeMux()
 	mux.Handle(prefixUrl, &gatewayHandler{})
 
@@ -70,4 +70,25 @@ func StartHttpServer(port, prefixUrl string) {
 		logger.Error(err)
 		return
 	}
+}
+
+func listenHttps(port, prefixUrl string) {
+	mux := http.NewServeMux()
+	mux.Handle(prefixUrl, &gatewayHandler{})
+
+	server := &http.Server{
+		Addr:         ":" + port,
+		WriteTimeout: time.Second * 3, //设置3秒的写超时
+		Handler:      mux,
+	}
+
+	if err := server.ListenAndServeTLS("ca/server.crt", "ca/server.key"); err != nil {
+		logger.Error(err)
+		return
+	}
+}
+
+func StartHttpServer() {
+	go listenHttp(getConf().HttpServer.Port, getConf().HttpServer.PrefixUrl)
+	listenHttps(getConf().HttpServer.HttpsPort, getConf().HttpServer.PrefixUrl)
 }

@@ -11,6 +11,6 @@ func StartService() error {
 		return err
 	}
 
-	StartHttpServer(getConf().HttpServer.Port, getConf().HttpServer.PrefixUrl)
+	StartHttpServer()
 	return nil
 }

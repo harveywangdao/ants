@@ -10,5 +10,6 @@ etcd:
     - 192.168.1.11:2379
 
 httpServer:
-  port: 8080
+  port: 80
+  httpsPort: 443
   prefixUrl: /v1/gateway

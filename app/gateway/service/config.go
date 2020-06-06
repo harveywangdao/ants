@@ -29,6 +29,7 @@ type ServerConfig struct {
 
 type HttpServerConfig struct {
 	Port      string `yaml:"port" json:"port"`
+	HttpsPort string `yaml:"httpsPort" json:"httpsPort"`
 	PrefixUrl string `yaml:"prefixUrl" json:"prefixUrl"`
 }
 
