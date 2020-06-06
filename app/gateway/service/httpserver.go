@@ -59,6 +59,9 @@ func (s *gatewayHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func listenHttp(port, prefixUrl string) {
 	mux := http.NewServeMux()
 	mux.Handle(prefixUrl, &gatewayHandler{})
+	mux.HandleFunc("/ping", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("http pong ants"))
+	})
 
 	server := &http.Server{
 		Addr:         ":" + port,
@@ -75,6 +78,9 @@ func listenHttp(port, prefixUrl string) {
 func listenHttps(port, prefixUrl string) {
 	mux := http.NewServeMux()
 	mux.Handle(prefixUrl, &gatewayHandler{})
+	mux.HandleFunc("/ping", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("https pong ants"))
+	})
 
 	server := &http.Server{
 		Addr:         ":" + port,
