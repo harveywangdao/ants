@@ -3,7 +3,7 @@ package model
 import (
 	"time"
 
-	"scheduler/util/logger"
+	"github.com/harveywangdao/ants/app/scheduler/util/logger"
 
 	"github.com/jinzhu/gorm"
 	//"github.com/shopspring/decimal"
@@ -57,7 +57,7 @@ type ApiKeyModel struct {
 	IsDelete   uint8     `gorm:"column:is_delete"`
 }
 
-func (u ApikeyModel) TableName() string {
+func (u ApiKeyModel) TableName() string {
 	return "apikey_tb"
 }
 

@@ -1,12 +1,5 @@
 package server
 
-import (
-	"scheduler/util/logger"
-
-	"github.com/gin-gonic/gin"
-	"scheduler/util/logger"
-)
-
 func (s *HttpService) setRouter() {
 	// 后台管理系统接口
 	// 1.增加新用户，传入用户邮箱地址、用户名，返回userid、用户密码
@@ -85,10 +78,10 @@ func (s *HttpService) setRouter() {
 
                                更新策略,新删除再增加
 
-调度服务watch /service/strategy,有新的节点加入就存到etcd里,/scheduler/strategy/strategyName/10.22.33.55:32154 --> {}
+调度服务watch /service/strategy,有新的节点加入就增加/scheduler/strategy/strategyName/10.22.33.55:32154 --> {}
                                有节点退出就删除/scheduler/strategy/strategyName/10.22.33.55:32154,并重新调度apikey1,apikey2
 
-策略服务启动时向etcd注册地址,/service/strategy/strategyName/10.22.33.55:32154 --> {"uptime":111111111, "available":true}
+策略服务启动时向etcd注册地址,/service/strategy/strategyName/10.22.33.55:32154 --> {"uptime":111111111, "available":true, "strategyName":"grid"}
 
 动态检测数据库数据与etcd的一致性,允许存在延迟
 */

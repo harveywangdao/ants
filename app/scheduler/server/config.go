@@ -4,8 +4,9 @@ import (
 	"encoding/json"
 	"io/ioutil"
 
+	"github.com/harveywangdao/ants/app/scheduler/util/logger"
+
 	"gopkg.in/yaml.v2"
-	"scheduler/util/logger"
 )
 
 type LogConfig struct {
@@ -56,6 +57,6 @@ func (s *HttpService) getConfig(configPath string) (*Config, error) {
 	}
 
 	data, _ := json.Marshal(&config)
-	logger.Debug("config:", string(data))
+	logger.Info("config:", string(data))
 	return &config, nil
 }

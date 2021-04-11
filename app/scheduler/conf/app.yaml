@@ -5,9 +5,7 @@ log:
 
 etcd:
   endpoints:
-    - 192.168.1.7:2379
-    - 192.168.1.10:2379
-    - 192.168.1.11:2379
+    - 0.0.0.0:2379
 
 grpcServer:
   name: user-core-service
@@ -17,8 +15,8 @@ httpServer:
   port: 4582
 
 database:
-  address: 192.168.1.100:3306
+  address: 192.168.126.128:3306
   username: root
   password: 180498
   driverName: mysql
-  dbName: ant_test
+  dbName: skydb

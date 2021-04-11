@@ -4,9 +4,9 @@ import (
 	"net/http"
 	"strconv"
 
-	"scheduler/model"
-	"scheduler/util"
-	"scheduler/util/logger"
+	"github.com/harveywangdao/ants/app/scheduler/model"
+	"github.com/harveywangdao/ants/app/scheduler/util"
+	"github.com/harveywangdao/ants/app/scheduler/util/logger"
 
 	"github.com/gin-gonic/gin"
 )

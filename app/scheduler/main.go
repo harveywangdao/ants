@@ -4,8 +4,8 @@ import (
 	"flag"
 	"log"
 
-	"scheduler/server"
-	"scheduler/util/logger"
+	"github.com/harveywangdao/ants/app/scheduler/server"
+	"github.com/harveywangdao/ants/app/scheduler/util/logger"
 )
 
 func init() {
