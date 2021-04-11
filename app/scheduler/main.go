@@ -4,20 +4,25 @@ import (
 	"flag"
 	"log"
 
-	"github.com/gin-gonic/gin"
+	"scheduler/server"
+	"scheduler/util/logger"
 )
 
 func init() {
-	log.SetFlags(log.Lshortfile | log.LstdFlags)
+	logger.SetHandlers(logger.Console)
+	logger.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
+	logger.SetLevel(logger.INFO)
 }
 
 func main() {
 	port := flag.String("port", "8080", "port")
+	configPath := flag.String("configPath", "conf/app.yaml", "port")
 	flag.Parse()
 
-	// 设置路由
-	router := gin.Default()
-
-	// start http server
-	router.Run(":" + *port)
+	srv, err := server.NewHttpService(*configPath)
+	if err != nil {
+		logger.Fatal(err)
+		return
+	}
+	logger.Fatal(srv.Start(*port))
 }
