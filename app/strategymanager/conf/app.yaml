@@ -14,6 +14,9 @@ grpcServer:
 httpServer:
   port: 4582
 
+process:
+  path: /data/strategy
+
 database:
   address: 192.168.126.128:3306
   username: root

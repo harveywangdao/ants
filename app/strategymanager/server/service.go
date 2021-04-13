@@ -2,6 +2,8 @@ package server
 
 import (
 	"net"
+	"os"
+	"sync"
 	"time"
 
 	"github.com/harveywangdao/ants/app/scheduler/util/logger"
@@ -15,10 +17,14 @@ import (
 type StrategyManager struct {
 	config *Config
 	db     *gorm.DB
+
+	processes map[string]*StrategyProcess
+	mu        sync.RWMutex
 }
 
 func NewStrategyManager(configPath string) (*StrategyManager, error) {
 	s := &StrategyManager{}
+	s.processes = make(map[string]*StrategyProcess)
 
 	config, err := s.getConfig(configPath)
 	if err != nil {

@@ -35,12 +35,17 @@ type DatabaseConfig struct {
 	DbName     string `yaml:"dbName" json:"dbName"`
 }
 
+type ProcessConfig struct {
+	Path string `yaml:"path" json:"path"`
+}
+
 type Config struct {
 	Log        *LogConfig        `yaml:"log" json:"log"`
 	Etcd       *EtcdConfig       `yaml:"etcd" json:"etcd"`
 	Server     *GrpcServerConfig `yaml:"grpcServer" json:"grpcServer"`
 	HttpServer *HttpServerConfig `yaml:"httpServer" json:"httpServer"`
 	Database   *DatabaseConfig   `yaml:"database" json:"database"`
+	Process    *ProcessConfig    `yaml:"process" json:"process"`
 }
 
 func (s *GrpcService) getConfig(configPath string) (*Config, error) {
