@@ -48,7 +48,7 @@ type Config struct {
 	Process    *ProcessConfig    `yaml:"process" json:"process"`
 }
 
-func (s *GrpcService) getConfig(configPath string) (*Config, error) {
+func (s *StrategyManager) getConfig(configPath string) (*Config, error) {
 	confData, err := ioutil.ReadFile(configPath)
 	if err != nil {
 		logger.Error(err)

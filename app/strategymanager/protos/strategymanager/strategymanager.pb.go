@@ -22,7 +22,7 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
-type StartStrategyRequest struct {
+type StartTaskRequest struct {
 	UserId               string   `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	Exchange             string   `protobuf:"bytes,2,opt,name=exchange,proto3" json:"exchange,omitempty"`
 	ApiKey               string   `protobuf:"bytes,3,opt,name=api_key,json=apiKey,proto3" json:"api_key,omitempty"`
@@ -38,133 +38,133 @@ type StartStrategyRequest struct {
 	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *StartStrategyRequest) Reset()         { *m = StartStrategyRequest{} }
-func (m *StartStrategyRequest) String() string { return proto.CompactTextString(m) }
-func (*StartStrategyRequest) ProtoMessage()    {}
-func (*StartStrategyRequest) Descriptor() ([]byte, []int) {
+func (m *StartTaskRequest) Reset()         { *m = StartTaskRequest{} }
+func (m *StartTaskRequest) String() string { return proto.CompactTextString(m) }
+func (*StartTaskRequest) ProtoMessage()    {}
+func (*StartTaskRequest) Descriptor() ([]byte, []int) {
 	return fileDescriptor_4e316c09d5f1b9b5, []int{0}
 }
 
-func (m *StartStrategyRequest) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_StartStrategyRequest.Unmarshal(m, b)
+func (m *StartTaskRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_StartTaskRequest.Unmarshal(m, b)
 }
-func (m *StartStrategyRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_StartStrategyRequest.Marshal(b, m, deterministic)
+func (m *StartTaskRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_StartTaskRequest.Marshal(b, m, deterministic)
 }
-func (m *StartStrategyRequest) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_StartStrategyRequest.Merge(m, src)
+func (m *StartTaskRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_StartTaskRequest.Merge(m, src)
 }
-func (m *StartStrategyRequest) XXX_Size() int {
-	return xxx_messageInfo_StartStrategyRequest.Size(m)
+func (m *StartTaskRequest) XXX_Size() int {
+	return xxx_messageInfo_StartTaskRequest.Size(m)
 }
-func (m *StartStrategyRequest) XXX_DiscardUnknown() {
-	xxx_messageInfo_StartStrategyRequest.DiscardUnknown(m)
+func (m *StartTaskRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_StartTaskRequest.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_StartStrategyRequest proto.InternalMessageInfo
+var xxx_messageInfo_StartTaskRequest proto.InternalMessageInfo
 
-func (m *StartStrategyRequest) GetUserId() string {
+func (m *StartTaskRequest) GetUserId() string {
 	if m != nil {
 		return m.UserId
 	}
 	return ""
 }
 
-func (m *StartStrategyRequest) GetExchange() string {
+func (m *StartTaskRequest) GetExchange() string {
 	if m != nil {
 		return m.Exchange
 	}
 	return ""
 }
 
-func (m *StartStrategyRequest) GetApiKey() string {
+func (m *StartTaskRequest) GetApiKey() string {
 	if m != nil {
 		return m.ApiKey
 	}
 	return ""
 }
 
-func (m *StartStrategyRequest) GetSecretKey() string {
+func (m *StartTaskRequest) GetSecretKey() string {
 	if m != nil {
 		return m.SecretKey
 	}
 	return ""
 }
 
-func (m *StartStrategyRequest) GetPassphrase() string {
+func (m *StartTaskRequest) GetPassphrase() string {
 	if m != nil {
 		return m.Passphrase
 	}
 	return ""
 }
 
-func (m *StartStrategyRequest) GetStrategyName() string {
+func (m *StartTaskRequest) GetStrategyName() string {
 	if m != nil {
 		return m.StrategyName
 	}
 	return ""
 }
 
-func (m *StartStrategyRequest) GetInstrumentId() string {
+func (m *StartTaskRequest) GetInstrumentId() string {
 	if m != nil {
 		return m.InstrumentId
 	}
 	return ""
 }
 
-func (m *StartStrategyRequest) GetEndpoint() string {
+func (m *StartTaskRequest) GetEndpoint() string {
 	if m != nil {
 		return m.Endpoint
 	}
 	return ""
 }
 
-func (m *StartStrategyRequest) GetWsEndpoint() string {
+func (m *StartTaskRequest) GetWsEndpoint() string {
 	if m != nil {
 		return m.WsEndpoint
 	}
 	return ""
 }
 
-func (m *StartStrategyRequest) GetParams() string {
+func (m *StartTaskRequest) GetParams() string {
 	if m != nil {
 		return m.Params
 	}
 	return ""
 }
 
-type StartStrategyResponse struct {
+type StartTaskResponse struct {
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *StartStrategyResponse) Reset()         { *m = StartStrategyResponse{} }
-func (m *StartStrategyResponse) String() string { return proto.CompactTextString(m) }
-func (*StartStrategyResponse) ProtoMessage()    {}
-func (*StartStrategyResponse) Descriptor() ([]byte, []int) {
+func (m *StartTaskResponse) Reset()         { *m = StartTaskResponse{} }
+func (m *StartTaskResponse) String() string { return proto.CompactTextString(m) }
+func (*StartTaskResponse) ProtoMessage()    {}
+func (*StartTaskResponse) Descriptor() ([]byte, []int) {
 	return fileDescriptor_4e316c09d5f1b9b5, []int{1}
 }
 
-func (m *StartStrategyResponse) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_StartStrategyResponse.Unmarshal(m, b)
+func (m *StartTaskResponse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_StartTaskResponse.Unmarshal(m, b)
 }
-func (m *StartStrategyResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_StartStrategyResponse.Marshal(b, m, deterministic)
+func (m *StartTaskResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_StartTaskResponse.Marshal(b, m, deterministic)
 }
-func (m *StartStrategyResponse) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_StartStrategyResponse.Merge(m, src)
+func (m *StartTaskResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_StartTaskResponse.Merge(m, src)
 }
-func (m *StartStrategyResponse) XXX_Size() int {
-	return xxx_messageInfo_StartStrategyResponse.Size(m)
+func (m *StartTaskResponse) XXX_Size() int {
+	return xxx_messageInfo_StartTaskResponse.Size(m)
 }
-func (m *StartStrategyResponse) XXX_DiscardUnknown() {
-	xxx_messageInfo_StartStrategyResponse.DiscardUnknown(m)
+func (m *StartTaskResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_StartTaskResponse.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_StartStrategyResponse proto.InternalMessageInfo
+var xxx_messageInfo_StartTaskResponse proto.InternalMessageInfo
 
-type StopStrategyRequest struct {
+type StopTaskRequest struct {
 	UserId               string   `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	Exchange             string   `protobuf:"bytes,2,opt,name=exchange,proto3" json:"exchange,omitempty"`
 	ApiKey               string   `protobuf:"bytes,3,opt,name=api_key,json=apiKey,proto3" json:"api_key,omitempty"`
@@ -175,98 +175,98 @@ type StopStrategyRequest struct {
 	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *StopStrategyRequest) Reset()         { *m = StopStrategyRequest{} }
-func (m *StopStrategyRequest) String() string { return proto.CompactTextString(m) }
-func (*StopStrategyRequest) ProtoMessage()    {}
-func (*StopStrategyRequest) Descriptor() ([]byte, []int) {
+func (m *StopTaskRequest) Reset()         { *m = StopTaskRequest{} }
+func (m *StopTaskRequest) String() string { return proto.CompactTextString(m) }
+func (*StopTaskRequest) ProtoMessage()    {}
+func (*StopTaskRequest) Descriptor() ([]byte, []int) {
 	return fileDescriptor_4e316c09d5f1b9b5, []int{2}
 }
 
-func (m *StopStrategyRequest) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_StopStrategyRequest.Unmarshal(m, b)
+func (m *StopTaskRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_StopTaskRequest.Unmarshal(m, b)
 }
-func (m *StopStrategyRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_StopStrategyRequest.Marshal(b, m, deterministic)
+func (m *StopTaskRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_StopTaskRequest.Marshal(b, m, deterministic)
 }
-func (m *StopStrategyRequest) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_StopStrategyRequest.Merge(m, src)
+func (m *StopTaskRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_StopTaskRequest.Merge(m, src)
 }
-func (m *StopStrategyRequest) XXX_Size() int {
-	return xxx_messageInfo_StopStrategyRequest.Size(m)
+func (m *StopTaskRequest) XXX_Size() int {
+	return xxx_messageInfo_StopTaskRequest.Size(m)
 }
-func (m *StopStrategyRequest) XXX_DiscardUnknown() {
-	xxx_messageInfo_StopStrategyRequest.DiscardUnknown(m)
+func (m *StopTaskRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_StopTaskRequest.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_StopStrategyRequest proto.InternalMessageInfo
+var xxx_messageInfo_StopTaskRequest proto.InternalMessageInfo
 
-func (m *StopStrategyRequest) GetUserId() string {
+func (m *StopTaskRequest) GetUserId() string {
 	if m != nil {
 		return m.UserId
 	}
 	return ""
 }
 
-func (m *StopStrategyRequest) GetExchange() string {
+func (m *StopTaskRequest) GetExchange() string {
 	if m != nil {
 		return m.Exchange
 	}
 	return ""
 }
 
-func (m *StopStrategyRequest) GetApiKey() string {
+func (m *StopTaskRequest) GetApiKey() string {
 	if m != nil {
 		return m.ApiKey
 	}
 	return ""
 }
 
-func (m *StopStrategyRequest) GetStrategyName() string {
+func (m *StopTaskRequest) GetStrategyName() string {
 	if m != nil {
 		return m.StrategyName
 	}
 	return ""
 }
 
-func (m *StopStrategyRequest) GetInstrumentId() string {
+func (m *StopTaskRequest) GetInstrumentId() string {
 	if m != nil {
 		return m.InstrumentId
 	}
 	return ""
 }
 
-type StopStrategyResponse struct {
+type StopTaskResponse struct {
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *StopStrategyResponse) Reset()         { *m = StopStrategyResponse{} }
-func (m *StopStrategyResponse) String() string { return proto.CompactTextString(m) }
-func (*StopStrategyResponse) ProtoMessage()    {}
-func (*StopStrategyResponse) Descriptor() ([]byte, []int) {
+func (m *StopTaskResponse) Reset()         { *m = StopTaskResponse{} }
+func (m *StopTaskResponse) String() string { return proto.CompactTextString(m) }
+func (*StopTaskResponse) ProtoMessage()    {}
+func (*StopTaskResponse) Descriptor() ([]byte, []int) {
 	return fileDescriptor_4e316c09d5f1b9b5, []int{3}
 }
 
-func (m *StopStrategyResponse) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_StopStrategyResponse.Unmarshal(m, b)
+func (m *StopTaskResponse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_StopTaskResponse.Unmarshal(m, b)
 }
-func (m *StopStrategyResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_StopStrategyResponse.Marshal(b, m, deterministic)
+func (m *StopTaskResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_StopTaskResponse.Marshal(b, m, deterministic)
 }
-func (m *StopStrategyResponse) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_StopStrategyResponse.Merge(m, src)
+func (m *StopTaskResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_StopTaskResponse.Merge(m, src)
 }
-func (m *StopStrategyResponse) XXX_Size() int {
-	return xxx_messageInfo_StopStrategyResponse.Size(m)
+func (m *StopTaskResponse) XXX_Size() int {
+	return xxx_messageInfo_StopTaskResponse.Size(m)
 }
-func (m *StopStrategyResponse) XXX_DiscardUnknown() {
-	xxx_messageInfo_StopStrategyResponse.DiscardUnknown(m)
+func (m *StopTaskResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_StopTaskResponse.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_StopStrategyResponse proto.InternalMessageInfo
+var xxx_messageInfo_StopTaskResponse proto.InternalMessageInfo
 
-type StrategyExecRequest struct {
+type TaskCommandExecRequest struct {
 	UserId               string   `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	Exchange             string   `protobuf:"bytes,2,opt,name=exchange,proto3" json:"exchange,omitempty"`
 	ApiKey               string   `protobuf:"bytes,3,opt,name=api_key,json=apiKey,proto3" json:"api_key,omitempty"`
@@ -278,141 +278,142 @@ type StrategyExecRequest struct {
 	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *StrategyExecRequest) Reset()         { *m = StrategyExecRequest{} }
-func (m *StrategyExecRequest) String() string { return proto.CompactTextString(m) }
-func (*StrategyExecRequest) ProtoMessage()    {}
-func (*StrategyExecRequest) Descriptor() ([]byte, []int) {
+func (m *TaskCommandExecRequest) Reset()         { *m = TaskCommandExecRequest{} }
+func (m *TaskCommandExecRequest) String() string { return proto.CompactTextString(m) }
+func (*TaskCommandExecRequest) ProtoMessage()    {}
+func (*TaskCommandExecRequest) Descriptor() ([]byte, []int) {
 	return fileDescriptor_4e316c09d5f1b9b5, []int{4}
 }
 
-func (m *StrategyExecRequest) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_StrategyExecRequest.Unmarshal(m, b)
+func (m *TaskCommandExecRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_TaskCommandExecRequest.Unmarshal(m, b)
 }
-func (m *StrategyExecRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_StrategyExecRequest.Marshal(b, m, deterministic)
+func (m *TaskCommandExecRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_TaskCommandExecRequest.Marshal(b, m, deterministic)
 }
-func (m *StrategyExecRequest) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_StrategyExecRequest.Merge(m, src)
+func (m *TaskCommandExecRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_TaskCommandExecRequest.Merge(m, src)
 }
-func (m *StrategyExecRequest) XXX_Size() int {
-	return xxx_messageInfo_StrategyExecRequest.Size(m)
+func (m *TaskCommandExecRequest) XXX_Size() int {
+	return xxx_messageInfo_TaskCommandExecRequest.Size(m)
 }
-func (m *StrategyExecRequest) XXX_DiscardUnknown() {
-	xxx_messageInfo_StrategyExecRequest.DiscardUnknown(m)
+func (m *TaskCommandExecRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_TaskCommandExecRequest.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_StrategyExecRequest proto.InternalMessageInfo
+var xxx_messageInfo_TaskCommandExecRequest proto.InternalMessageInfo
 
-func (m *StrategyExecRequest) GetUserId() string {
+func (m *TaskCommandExecRequest) GetUserId() string {
 	if m != nil {
 		return m.UserId
 	}
 	return ""
 }
 
-func (m *StrategyExecRequest) GetExchange() string {
+func (m *TaskCommandExecRequest) GetExchange() string {
 	if m != nil {
 		return m.Exchange
 	}
 	return ""
 }
 
-func (m *StrategyExecRequest) GetApiKey() string {
+func (m *TaskCommandExecRequest) GetApiKey() string {
 	if m != nil {
 		return m.ApiKey
 	}
 	return ""
 }
 
-func (m *StrategyExecRequest) GetStrategyName() string {
+func (m *TaskCommandExecRequest) GetStrategyName() string {
 	if m != nil {
 		return m.StrategyName
 	}
 	return ""
 }
 
-func (m *StrategyExecRequest) GetInstrumentId() string {
+func (m *TaskCommandExecRequest) GetInstrumentId() string {
 	if m != nil {
 		return m.InstrumentId
 	}
 	return ""
 }
 
-func (m *StrategyExecRequest) GetParams() string {
+func (m *TaskCommandExecRequest) GetParams() string {
 	if m != nil {
 		return m.Params
 	}
 	return ""
 }
 
-type StrategyExecResponse struct {
+type TaskCommandExecResponse struct {
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *StrategyExecResponse) Reset()         { *m = StrategyExecResponse{} }
-func (m *StrategyExecResponse) String() string { return proto.CompactTextString(m) }
-func (*StrategyExecResponse) ProtoMessage()    {}
-func (*StrategyExecResponse) Descriptor() ([]byte, []int) {
+func (m *TaskCommandExecResponse) Reset()         { *m = TaskCommandExecResponse{} }
+func (m *TaskCommandExecResponse) String() string { return proto.CompactTextString(m) }
+func (*TaskCommandExecResponse) ProtoMessage()    {}
+func (*TaskCommandExecResponse) Descriptor() ([]byte, []int) {
 	return fileDescriptor_4e316c09d5f1b9b5, []int{5}
 }
 
-func (m *StrategyExecResponse) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_StrategyExecResponse.Unmarshal(m, b)
+func (m *TaskCommandExecResponse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_TaskCommandExecResponse.Unmarshal(m, b)
 }
-func (m *StrategyExecResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_StrategyExecResponse.Marshal(b, m, deterministic)
+func (m *TaskCommandExecResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_TaskCommandExecResponse.Marshal(b, m, deterministic)
 }
-func (m *StrategyExecResponse) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_StrategyExecResponse.Merge(m, src)
+func (m *TaskCommandExecResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_TaskCommandExecResponse.Merge(m, src)
 }
-func (m *StrategyExecResponse) XXX_Size() int {
-	return xxx_messageInfo_StrategyExecResponse.Size(m)
+func (m *TaskCommandExecResponse) XXX_Size() int {
+	return xxx_messageInfo_TaskCommandExecResponse.Size(m)
 }
-func (m *StrategyExecResponse) XXX_DiscardUnknown() {
-	xxx_messageInfo_StrategyExecResponse.DiscardUnknown(m)
+func (m *TaskCommandExecResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_TaskCommandExecResponse.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_StrategyExecResponse proto.InternalMessageInfo
+var xxx_messageInfo_TaskCommandExecResponse proto.InternalMessageInfo
 
 func init() {
-	proto.RegisterType((*StartStrategyRequest)(nil), "strategymanager.StartStrategyRequest")
-	proto.RegisterType((*StartStrategyResponse)(nil), "strategymanager.StartStrategyResponse")
-	proto.RegisterType((*StopStrategyRequest)(nil), "strategymanager.StopStrategyRequest")
-	proto.RegisterType((*StopStrategyResponse)(nil), "strategymanager.StopStrategyResponse")
-	proto.RegisterType((*StrategyExecRequest)(nil), "strategymanager.StrategyExecRequest")
-	proto.RegisterType((*StrategyExecResponse)(nil), "strategymanager.StrategyExecResponse")
+	proto.RegisterType((*StartTaskRequest)(nil), "strategymanager.StartTaskRequest")
+	proto.RegisterType((*StartTaskResponse)(nil), "strategymanager.StartTaskResponse")
+	proto.RegisterType((*StopTaskRequest)(nil), "strategymanager.StopTaskRequest")
+	proto.RegisterType((*StopTaskResponse)(nil), "strategymanager.StopTaskResponse")
+	proto.RegisterType((*TaskCommandExecRequest)(nil), "strategymanager.TaskCommandExecRequest")
+	proto.RegisterType((*TaskCommandExecResponse)(nil), "strategymanager.TaskCommandExecResponse")
 }
 
 func init() { proto.RegisterFile("strategymanager.proto", fileDescriptor_4e316c09d5f1b9b5) }
 
 var fileDescriptor_4e316c09d5f1b9b5 = []byte{
-	// 380 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xcc, 0x54, 0xcd, 0x4e, 0xf2, 0x40,
-	0x14, 0x05, 0x3e, 0x28, 0x70, 0x3f, 0x08, 0xc9, 0x28, 0x30, 0x21, 0xf1, 0x27, 0x55, 0x8c, 0x2b,
-	0x16, 0xfa, 0x0c, 0x2c, 0x8c, 0xd1, 0x05, 0xac, 0x4d, 0x1d, 0xe1, 0x06, 0x1a, 0xd3, 0xe9, 0x38,
-	0x33, 0x04, 0x78, 0x28, 0x17, 0xbe, 0x82, 0x89, 0xef, 0x65, 0x3a, 0xd3, 0x42, 0xa1, 0x4d, 0x70,
-	0x63, 0xe2, 0xf2, 0x9e, 0x73, 0x66, 0x72, 0xce, 0xb9, 0x9d, 0x42, 0x5b, 0x69, 0xc9, 0x34, 0xce,
-	0xd6, 0x01, 0xe3, 0x6c, 0x86, 0x72, 0x20, 0x64, 0xa8, 0x43, 0xd2, 0xda, 0x83, 0xdd, 0xcf, 0x12,
-	0x1c, 0x8f, 0x35, 0x93, 0x7a, 0x1c, 0x13, 0x23, 0x7c, 0x5b, 0xa0, 0xd2, 0xa4, 0x0b, 0xd5, 0x85,
-	0x42, 0xe9, 0xf9, 0x53, 0x5a, 0x3c, 0x2f, 0x5e, 0xd7, 0x47, 0x4e, 0x34, 0xde, 0x4d, 0x49, 0x0f,
-	0x6a, 0xb8, 0x9a, 0xcc, 0x19, 0x9f, 0x21, 0x2d, 0x19, 0x66, 0x33, 0x47, 0x87, 0x98, 0xf0, 0xbd,
-	0x57, 0x5c, 0xd3, 0x7f, 0xf6, 0x10, 0x13, 0xfe, 0x3d, 0xae, 0xc9, 0x09, 0x80, 0xc2, 0x89, 0x44,
-	0x6d, 0xb8, 0xb2, 0xe1, 0xea, 0x16, 0x89, 0xe8, 0x53, 0x00, 0xc1, 0x94, 0x12, 0x73, 0xc9, 0x14,
-	0xd2, 0x8a, 0xa1, 0x53, 0x08, 0xb9, 0x80, 0x66, 0x62, 0xdc, 0xe3, 0x2c, 0x40, 0xea, 0x18, 0x49,
-	0x23, 0x01, 0x1f, 0x59, 0x60, 0x44, 0x3e, 0x57, 0x5a, 0x2e, 0x02, 0xe4, 0x3a, 0xf2, 0x5d, 0xb5,
-	0xa2, 0x2d, 0x18, 0xbb, 0xe7, 0x53, 0x11, 0xfa, 0x5c, 0xd3, 0x5a, 0xec, 0x3e, 0x9e, 0xc9, 0x19,
-	0xfc, 0x5f, 0x2a, 0x6f, 0x43, 0xd7, 0xad, 0x8d, 0xa5, 0x1a, 0x26, 0x82, 0x0e, 0x38, 0x82, 0x49,
-	0x16, 0x28, 0x0a, 0x36, 0x9d, 0x9d, 0xdc, 0x2e, 0xb4, 0xf7, 0x3a, 0x54, 0x22, 0xe4, 0x0a, 0xdd,
-	0xf7, 0x22, 0x1c, 0x8d, 0x75, 0x28, 0x7e, 0xb7, 0xdc, 0x4c, 0x3b, 0xe5, 0x9f, 0xb4, 0x53, 0xc9,
-	0xb6, 0xe3, 0x76, 0xa2, 0x8f, 0x21, 0x6d, 0x37, 0xce, 0xf1, 0x65, 0x72, 0x58, 0x70, 0xb8, 0xc2,
-	0xc9, 0x1f, 0xcf, 0x91, 0x5a, 0x94, 0xb3, 0xb3, 0x28, 0x93, 0x2f, 0x1d, 0xc3, 0xe6, 0xbb, 0xf9,
-	0x28, 0x41, 0x2b, 0x21, 0x1e, 0xec, 0xcb, 0x20, 0xcf, 0xd0, 0xdc, 0x59, 0x2a, 0xe9, 0x0f, 0xf6,
-	0xdf, 0x54, 0xde, 0xc3, 0xe9, 0x5d, 0x1d, 0x92, 0xc5, 0x9d, 0x16, 0xc8, 0x13, 0x34, 0xd2, 0x6d,
-	0x93, 0xcb, 0x9c, 0x93, 0x99, 0x6f, 0xa7, 0xd7, 0x3f, 0xa0, 0xda, 0xbd, 0x7e, 0x1b, 0x36, 0xf7,
-	0xfa, 0xcc, 0x4a, 0x73, 0xaf, 0xcf, 0x36, 0xe6, 0x16, 0x5e, 0x1c, 0xf3, 0x47, 0xb9, 0xfd, 0x0e,
-	0x00, 0x00, 0xff, 0xff, 0x02, 0xd2, 0x37, 0xad, 0x6a, 0x04, 0x00, 0x00,
+	// 394 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xcc, 0x54, 0xc1, 0x4e, 0xea, 0x40,
+	0x14, 0x7d, 0xe5, 0x41, 0xa1, 0xf7, 0xbd, 0x17, 0xde, 0x9b, 0x17, 0xa1, 0x36, 0x51, 0xa1, 0x2e,
+	0x64, 0xc5, 0x42, 0x3f, 0xc1, 0xb0, 0x30, 0x46, 0x13, 0x81, 0x7d, 0x33, 0xd2, 0x2b, 0x34, 0xa4,
+	0xd3, 0x71, 0x66, 0x08, 0xf0, 0x3b, 0xee, 0xfc, 0x09, 0xd7, 0x7e, 0x96, 0x69, 0xa7, 0xad, 0xd0,
+	0x12, 0x74, 0x63, 0xe2, 0xf2, 0x9e, 0x73, 0x6e, 0xe7, 0xdc, 0x73, 0x67, 0x0a, 0x07, 0x52, 0x09,
+	0xaa, 0x70, 0xba, 0x0e, 0x29, 0xa3, 0x53, 0x14, 0x7d, 0x2e, 0x22, 0x15, 0x91, 0x66, 0x01, 0x76,
+	0x5f, 0x2a, 0xf0, 0x77, 0xa4, 0xa8, 0x50, 0x63, 0x2a, 0xe7, 0x43, 0x7c, 0x5c, 0xa0, 0x54, 0xa4,
+	0x0d, 0xf5, 0x85, 0x44, 0xe1, 0x05, 0xbe, 0x6d, 0x74, 0x8c, 0x9e, 0x35, 0x34, 0xe3, 0xf2, 0xca,
+	0x27, 0x0e, 0x34, 0x70, 0x35, 0x99, 0x51, 0x36, 0x45, 0xbb, 0x92, 0x30, 0x79, 0x1d, 0x37, 0x51,
+	0x1e, 0x78, 0x73, 0x5c, 0xdb, 0x3f, 0x75, 0x13, 0xe5, 0xc1, 0x35, 0xae, 0xc9, 0x11, 0x80, 0xc4,
+	0x89, 0x40, 0x95, 0x70, 0xd5, 0x84, 0xb3, 0x34, 0x12, 0xd3, 0xc7, 0x00, 0x9c, 0x4a, 0xc9, 0x67,
+	0x82, 0x4a, 0xb4, 0x6b, 0x09, 0xbd, 0x81, 0x90, 0x53, 0xf8, 0x93, 0x99, 0xf6, 0x18, 0x0d, 0xd1,
+	0x36, 0x13, 0xc9, 0xef, 0x0c, 0xbc, 0xa5, 0x61, 0x22, 0x0a, 0x98, 0x54, 0x62, 0x11, 0x22, 0x53,
+	0xb1, 0xef, 0xba, 0x16, 0xbd, 0x83, 0xa9, 0x7b, 0xe6, 0xf3, 0x28, 0x60, 0xca, 0x6e, 0xa4, 0xee,
+	0xd3, 0x9a, 0x9c, 0xc0, 0xaf, 0xa5, 0xf4, 0x72, 0xda, 0xd2, 0x36, 0x96, 0x72, 0x90, 0x09, 0x5a,
+	0x60, 0x72, 0x2a, 0x68, 0x28, 0x6d, 0xd0, 0xd3, 0xe9, 0xca, 0xfd, 0x0f, 0xff, 0x36, 0xf2, 0x93,
+	0x3c, 0x62, 0x12, 0xdd, 0x67, 0x03, 0x9a, 0x23, 0x15, 0xf1, 0xaf, 0x0b, 0xb5, 0x94, 0x4a, 0xf5,
+	0x33, 0xa9, 0xd4, 0xca, 0xa9, 0xb8, 0x24, 0xbe, 0x00, 0x99, 0xd5, 0xd4, 0xff, 0xab, 0x01, 0xad,
+	0x18, 0xb8, 0x8c, 0xc2, 0x90, 0x32, 0x7f, 0xb0, 0xc2, 0xc9, 0x37, 0x1f, 0x63, 0x63, 0x3f, 0xe6,
+	0xd6, 0x7e, 0x0e, 0xa1, 0x5d, 0x9a, 0x44, 0x4f, 0x79, 0xfe, 0x54, 0x89, 0xb7, 0xa4, 0x0f, 0xba,
+	0xd1, 0xef, 0x81, 0x8c, 0xc1, 0xca, 0xd7, 0x49, 0xba, 0xfd, 0xe2, 0x2b, 0x2a, 0x3e, 0x15, 0xc7,
+	0xdd, 0x27, 0x49, 0xd3, 0xfc, 0x41, 0xee, 0xa0, 0x91, 0x65, 0x4c, 0x3a, 0x3b, 0x3a, 0xb6, 0x6e,
+	0x8a, 0xd3, 0xdd, 0xa3, 0xc8, 0x3f, 0xf9, 0x00, 0xcd, 0xc2, 0x5c, 0xe4, 0xac, 0xd4, 0xb7, 0x7b,
+	0x87, 0x4e, 0xef, 0x63, 0x61, 0x76, 0xce, 0xbd, 0x99, 0xfc, 0x38, 0x2e, 0xde, 0x02, 0x00, 0x00,
+	0xff, 0xff, 0xcd, 0x90, 0x75, 0x6c, 0x51, 0x04, 0x00, 0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -427,9 +428,9 @@ const _ = grpc.SupportPackageIsVersion4
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type StrategyManagerClient interface {
-	StartStrategy(ctx context.Context, in *StartStrategyRequest, opts ...grpc.CallOption) (*StartStrategyResponse, error)
-	StopStrategy(ctx context.Context, in *StopStrategyRequest, opts ...grpc.CallOption) (*StopStrategyResponse, error)
-	StrategyExec(ctx context.Context, in *StrategyExecRequest, opts ...grpc.CallOption) (*StrategyExecResponse, error)
+	StartTask(ctx context.Context, in *StartTaskRequest, opts ...grpc.CallOption) (*StartTaskResponse, error)
+	StopTask(ctx context.Context, in *StopTaskRequest, opts ...grpc.CallOption) (*StopTaskResponse, error)
+	TaskCommandExec(ctx context.Context, in *TaskCommandExecRequest, opts ...grpc.CallOption) (*TaskCommandExecResponse, error)
 }
 
 type strategyManagerClient struct {
@@ -440,27 +441,27 @@ func NewStrategyManagerClient(cc *grpc.ClientConn) StrategyManagerClient {
 	return &strategyManagerClient{cc}
 }
 
-func (c *strategyManagerClient) StartStrategy(ctx context.Context, in *StartStrategyRequest, opts ...grpc.CallOption) (*StartStrategyResponse, error) {
-	out := new(StartStrategyResponse)
-	err := c.cc.Invoke(ctx, "/strategymanager.StrategyManager/StartStrategy", in, out, opts...)
+func (c *strategyManagerClient) StartTask(ctx context.Context, in *StartTaskRequest, opts ...grpc.CallOption) (*StartTaskResponse, error) {
+	out := new(StartTaskResponse)
+	err := c.cc.Invoke(ctx, "/strategymanager.StrategyManager/StartTask", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *strategyManagerClient) StopStrategy(ctx context.Context, in *StopStrategyRequest, opts ...grpc.CallOption) (*StopStrategyResponse, error) {
-	out := new(StopStrategyResponse)
-	err := c.cc.Invoke(ctx, "/strategymanager.StrategyManager/StopStrategy", in, out, opts...)
+func (c *strategyManagerClient) StopTask(ctx context.Context, in *StopTaskRequest, opts ...grpc.CallOption) (*StopTaskResponse, error) {
+	out := new(StopTaskResponse)
+	err := c.cc.Invoke(ctx, "/strategymanager.StrategyManager/StopTask", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *strategyManagerClient) StrategyExec(ctx context.Context, in *StrategyExecRequest, opts ...grpc.CallOption) (*StrategyExecResponse, error) {
-	out := new(StrategyExecResponse)
-	err := c.cc.Invoke(ctx, "/strategymanager.StrategyManager/StrategyExec", in, out, opts...)
+func (c *strategyManagerClient) TaskCommandExec(ctx context.Context, in *TaskCommandExecRequest, opts ...grpc.CallOption) (*TaskCommandExecResponse, error) {
+	out := new(TaskCommandExecResponse)
+	err := c.cc.Invoke(ctx, "/strategymanager.StrategyManager/TaskCommandExec", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -469,65 +470,65 @@ func (c *strategyManagerClient) StrategyExec(ctx context.Context, in *StrategyEx
 
 // StrategyManagerServer is the server API for StrategyManager service.
 type StrategyManagerServer interface {
-	StartStrategy(context.Context, *StartStrategyRequest) (*StartStrategyResponse, error)
-	StopStrategy(context.Context, *StopStrategyRequest) (*StopStrategyResponse, error)
-	StrategyExec(context.Context, *StrategyExecRequest) (*StrategyExecResponse, error)
+	StartTask(context.Context, *StartTaskRequest) (*StartTaskResponse, error)
+	StopTask(context.Context, *StopTaskRequest) (*StopTaskResponse, error)
+	TaskCommandExec(context.Context, *TaskCommandExecRequest) (*TaskCommandExecResponse, error)
 }
 
 func RegisterStrategyManagerServer(s *grpc.Server, srv StrategyManagerServer) {
 	s.RegisterService(&_StrategyManager_serviceDesc, srv)
 }
 
-func _StrategyManager_StartStrategy_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(StartStrategyRequest)
+func _StrategyManager_StartTask_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(StartTaskRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(StrategyManagerServer).StartStrategy(ctx, in)
+		return srv.(StrategyManagerServer).StartTask(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/strategymanager.StrategyManager/StartStrategy",
+		FullMethod: "/strategymanager.StrategyManager/StartTask",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(StrategyManagerServer).StartStrategy(ctx, req.(*StartStrategyRequest))
+		return srv.(StrategyManagerServer).StartTask(ctx, req.(*StartTaskRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _StrategyManager_StopStrategy_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(StopStrategyRequest)
+func _StrategyManager_StopTask_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(StopTaskRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(StrategyManagerServer).StopStrategy(ctx, in)
+		return srv.(StrategyManagerServer).StopTask(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/strategymanager.StrategyManager/StopStrategy",
+		FullMethod: "/strategymanager.StrategyManager/StopTask",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(StrategyManagerServer).StopStrategy(ctx, req.(*StopStrategyRequest))
+		return srv.(StrategyManagerServer).StopTask(ctx, req.(*StopTaskRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _StrategyManager_StrategyExec_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(StrategyExecRequest)
+func _StrategyManager_TaskCommandExec_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TaskCommandExecRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(StrategyManagerServer).StrategyExec(ctx, in)
+		return srv.(StrategyManagerServer).TaskCommandExec(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/strategymanager.StrategyManager/StrategyExec",
+		FullMethod: "/strategymanager.StrategyManager/TaskCommandExec",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(StrategyManagerServer).StrategyExec(ctx, req.(*StrategyExecRequest))
+		return srv.(StrategyManagerServer).TaskCommandExec(ctx, req.(*TaskCommandExecRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -537,16 +538,16 @@ var _StrategyManager_serviceDesc = grpc.ServiceDesc{
 	HandlerType: (*StrategyManagerServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "StartStrategy",
-			Handler:    _StrategyManager_StartStrategy_Handler,
+			MethodName: "StartTask",
+			Handler:    _StrategyManager_StartTask_Handler,
 		},
 		{
-			MethodName: "StopStrategy",
-			Handler:    _StrategyManager_StopStrategy_Handler,
+			MethodName: "StopTask",
+			Handler:    _StrategyManager_StopTask_Handler,
 		},
 		{
-			MethodName: "StrategyExec",
-			Handler:    _StrategyManager_StrategyExec_Handler,
+			MethodName: "TaskCommandExec",
+			Handler:    _StrategyManager_TaskCommandExec_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

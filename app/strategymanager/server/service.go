@@ -23,29 +23,18 @@ type StrategyManager struct {
 }
 
 func NewStrategyManager(configPath string) (*StrategyManager, error) {
-	s := &StrategyManager{}
-	s.processes = make(map[string]*StrategyProcess)
+	mgr := &StrategyManager{
+		processes: make(map[string]*StrategyProcess),
+	}
 
-	config, err := s.getConfig(configPath)
+	config, err := mgr.getConfig(configPath)
 	if err != nil {
 		logger.Fatal(err)
 		return nil, err
 	}
-	s.config = config
+	mgr.config = config
 
-	dbParam := s.config.Database.Username + ":" + s.config.Database.Password + "@tcp(" + s.config.Database.Address + ")/" + s.config.Database.DbName + "?charset=utf8&parseTime=True&loc=Local"
-	db, err := gorm.Open(s.config.Database.DriverName, dbParam)
-	if err != nil {
-		logger.Fatal(err)
-		return nil, err
-	}
-	// defer db.Close()
-	db.DB().SetMaxIdleConns(10)
-	db.DB().SetMaxOpenConns(100)
-	db.DB().SetConnMaxLifetime(time.Hour)
-	s.db = db
-
-	return s, nil
+	return mgr, nil
 }
 
 func (s *StrategyManager) Start(port string) error {
