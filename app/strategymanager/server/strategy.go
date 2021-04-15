@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
 
 	"github.com/harveywangdao/ants/app/scheduler/util"
 	"github.com/harveywangdao/ants/app/scheduler/util/logger"
@@ -43,6 +44,8 @@ func (s *StrategyManager) StartTask(ctx context.Context, in *mgrpb.StartTaskRequ
 	}
 
 	// 向etcd注册
+
+	return &mgrpb.StartTaskResponse{}, nil
 }
 
 func (s *StrategyManager) StopTask(ctx context.Context, in *mgrpb.StopTaskRequest) (*mgrpb.StopTaskResponse, error) {
@@ -59,13 +62,8 @@ func (s *StrategyManager) StopTask(ctx context.Context, in *mgrpb.StopTaskReques
 		UserId:       in.UserId,
 		Exchange:     in.Exchange,
 		ApiKey:       in.ApiKey,
-		SecretKey:    in.SecretKey,
-		Passphrase:   in.Passphrase,
 		StrategyName: in.StrategyName,
 		InstrumentId: in.InstrumentId,
-		Endpoint:     in.Endpoint,
-		WsEndpoint:   in.WsEndpoint,
-		Params:       in.Params,
 	}
 	_, err = sp.Client.StopStrategy(ctx, req)
 	if err != nil {
@@ -74,9 +72,11 @@ func (s *StrategyManager) StopTask(ctx context.Context, in *mgrpb.StopTaskReques
 	}
 
 	// 销毁进程
-	s.destroyProcess(uniqueId)
+	sp.KillProc()
 
 	// 从etcd删除注册信息
+
+	return &mgrpb.StopTaskResponse{}, nil
 }
 
 func (s *StrategyManager) TaskCommandExec(ctx context.Context, in *mgrpb.TaskCommandExecRequest) (*mgrpb.TaskCommandExecResponse, error) {
@@ -106,8 +106,8 @@ func (s *StrategyManager) TaskCommandExec(ctx context.Context, in *mgrpb.TaskCom
 }
 
 func (s *StrategyManager) getProcess(uniqueId string) (*StrategyProcess, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 	sp, ok := s.processes[uniqueId]
 	if !ok {
 		return nil, fmt.Errorf("%s not existed", uniqueId)
@@ -115,30 +115,24 @@ func (s *StrategyManager) getProcess(uniqueId string) (*StrategyProcess, error) 
 	return sp, nil
 }
 
-func (s *StrategyManager) destroyProcess(uniqueId string) error {
+func (s *StrategyManager) delProc(uniqueId string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	sp, ok := s.processes[uniqueId]
-	if !ok {
-		return fmt.Errorf("%s not existed", uniqueId)
-	}
-	sp.Close()
-
 	delete(s.processes, uniqueId)
 	return nil
 }
 
 func (s *StrategyManager) createProcess(ctx context.Context, in *mgrpb.StartTaskRequest) (*StrategyProcess, error) {
+	uniqueId := fmt.Sprintf("%s-%s-%s", in.ApiKey, in.StrategyName, in.InstrumentId)
+
 	s.mu.Lock()
 	defer s.mu.Unlock()
-
-	uniqueId := fmt.Sprintf("%s-%s-%s", in.ApiKey, in.StrategyName, in.InstrumentId)
 	if _, ok := s.processes[uniqueId]; ok {
 		return nil, fmt.Errorf("%s already existed", uniqueId)
 	}
 
 	path := filepath.Join(s.config.Process.Path, in.StrategyName)
-	sp, err := NewStrategyProcess(path)
+	sp, err := NewStrategyProcess(path, uniqueId, s.procExitCh)
 	if err != nil {
 		logger.Error(err)
 		return nil, err
@@ -148,18 +142,19 @@ func (s *StrategyManager) createProcess(ctx context.Context, in *mgrpb.StartTask
 }
 
 type StrategyProcess struct {
-	process *os.Process
-	msgCh   chan []byte
+	uniqueId string
+	process  *os.Process
 
 	unixFile string
 	conn     *grpc.ClientConn
-	Client   *spb.StrategyClient
+	Client   spb.StrategyClient
 
-	closedCh chan bool
-	once     sync.Once
+	procExitCh chan<- string
+
+	once sync.Once
 }
 
-func NewStrategyProcess(path string) (*StrategyProcess, error) {
+func NewStrategyProcess(path, uniqueId string, procExitCh chan<- string) (*StrategyProcess, error) {
 	unixFile := filepath.Join(os.TempDir(), util.GetUUID())
 	argv := []string{unixFile}
 	attr := &os.ProcAttr{
@@ -173,23 +168,23 @@ func NewStrategyProcess(path string) (*StrategyProcess, error) {
 	}
 
 	sp := &StrategyProcess{
-		process:  process,
-		unixFile: unixFile,
-		msgCh:    make(chan []byte),
-		closedCh: make(chan bool),
+		uniqueId:   uniqueId,
+		process:    process,
+		unixFile:   unixFile,
+		procExitCh: procExitCh,
 	}
 
 	conn, err := grpc.Dial(unixFile, grpc.WithInsecure(), grpc.WithDialer(sp.unixConnect))
 	if err != nil {
 		logger.Error(err)
 		s.process.Kill()
+		s.process.Wait()
 		return nil, err
 	}
-	client := spb.NewStrategyClient(conn)
 	sp.conn = conn
-	sp.Client = client
+	sp.Client = spb.NewStrategyClient(sp.conn)
 
-	go sp.processTask()
+	go sp.waitProc()
 
 	return sp, nil
 }
@@ -204,21 +199,29 @@ func (s *StrategyProcess) unixConnect(addr string, t time.Duration) (net.Conn, e
 	return net.DialUnix("unix", nil, addr)
 }
 
-func (s *StrategyProcess) processTask() {
-	for {
-		select {
-		case <-s.closedCh:
-			s.process.Wait()
-			os.RemoveAll(s.unixFile)
-			return
-		}
+func (s *StrategyProcess) waitProc() {
+	state, err := s.process.Wait()
+	if err != nil {
+		logger.Error(err)
 	}
+	logger.Infof("proc id: %s exit state: %s", state.Pid(), state.String())
+	s.close()
+	s.procExitCh <- s.uniqueId
 }
 
-func (s *StrategyProcess) Close() {
+func (s *StrategyProcess) close() {
 	s.once.Do(func() {
-		close(s.closedCh)
-		s.conn.Close()
-		s.process.Kill()
+		if err := s.conn.Close(); err != nil {
+			logger.Error(err)
+		}
+		if err := os.RemoveAll(s.unixFile); err != nil {
+			logger.Error(err)
+		}
 	})
+}
+
+func (s *StrategyProcess) KillProc() {
+	if err := s.process.Kill(); err != nil {
+		logger.Error(err)
+	}
 }
