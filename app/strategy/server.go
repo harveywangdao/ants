@@ -5,6 +5,7 @@ import (
 	"log"
 	"net"
 	"os"
+	"time"
 
 	"github.com/harveywangdao/ants/app/scheduler/util/logger"
 	//"github.com/harveywangdao/ants/app/strategy/service"
@@ -22,6 +23,7 @@ type StrategyService struct {
 }
 
 func (s *StrategyService) StartStrategy(ctx context.Context, in *pb.StartStrategyRequest) (*pb.StartStrategyResponse, error) {
+	logger.Info("success recv start strategy")
 	return &pb.StartStrategyResponse{}, nil
 }
 
@@ -33,7 +35,7 @@ func (s *StrategyService) StrategyExec(ctx context.Context, in *pb.StrategyExecR
 	return &pb.StrategyExecResponse{}, nil
 }
 
-func main() {
+func do1() {
 	if len(os.Args) != 2 {
 		logger.Fatal("args len must be 2, args:", os.Args)
 		return
@@ -54,7 +56,41 @@ func main() {
 		logger.Fatal(err)
 		return
 	}
+
+	go func() {
+		time.Sleep(time.Second * 20)
+		var p *int
+		*p = 2
+	}()
+
 	s := grpc.NewServer()
 	pb.RegisterStrategyServer(s, &StrategyService{})
 	logger.Fatal(s.Serve(lis))
+}
+
+func do2() {
+	lisFile := os.NewFile(uintptr(3), "/tmp/45615641465414")
+	lis, err := net.FileListener(lisFile)
+	if err != nil {
+		logger.Fatal(err)
+		return
+	}
+
+	logger.Info("lisFile.Fd() =", lisFile.Fd())
+	lisFile.Close()
+	//lis.Close()
+
+	go func() {
+		time.Sleep(time.Second * 20)
+		var p *int
+		*p = 2
+	}()
+
+	s := grpc.NewServer()
+	pb.RegisterStrategyServer(s, &StrategyService{})
+	logger.Fatal(s.Serve(lis))
+}
+
+func main() {
+	do1()
 }
