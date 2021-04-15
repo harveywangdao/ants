@@ -46,13 +46,11 @@ func (s *StrategyManager) StopTask(ctx context.Context, in *mgrpb.StopTaskReques
 	_, err = sp.Client.StopStrategy(ctx, req)
 	if err != nil {
 		logger.Error(err)
-		return nil, err
+		//return nil, err
 	}
 
 	// 销毁进程
-	sp.KillProc()
-
-	// 从etcd删除注册信息
+	sp.Close()
 
 	return &mgrpb.StopTaskResponse{}, nil
 }
@@ -93,7 +91,7 @@ func (s *StrategyManager) getProcess(uniqueId string) (*StrategyProcess, error) 
 	return sp, nil
 }
 
-func (s *StrategyManager) delProc(uniqueId string) error {
+func (s *StrategyManager) delProcess(uniqueId string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	delete(s.processes, uniqueId)
@@ -163,29 +161,53 @@ func NewStrategyProcess(mgr *StrategyManager, startReq *mgrpb.StartTaskRequest) 
 	conn, err := grpc.Dial(unixFile, grpc.WithInsecure(), grpc.WithDialer(sp.unixConnect))
 	if err != nil {
 		logger.Error(err)
-		s.process.Kill()
-		s.process.Wait()
+		sp.process.Kill()
+		sp.process.Wait()
 		return nil, err
 	}
 	sp.conn = conn
 	sp.Client = spb.NewStrategyClient(sp.conn)
 
-	go sp.task()
-	go sp.waitProc()
-
 	if err := sp.startStrategy(startReq); err != nil {
 		logger.Error(err)
-		s.process.Kill()
-		sp.release()
+		sp.conn.Close()
+		sp.process.Kill()
+		sp.process.Wait()
 		return nil, err
 	}
+
+	go sp.task()
 
 	return sp, nil
 }
 
 func (s *StrategyProcess) task() {
 	tk := time.NewTicker(time.Second * 3)
-	defer tk.Stop()
+
+	defer func() {
+		if err := s.conn.Close(); err != nil {
+			logger.Error(err)
+		}
+
+		if err := os.RemoveAll(s.unixFile); err != nil {
+			logger.Error(err)
+		}
+
+		if err := s.process.Kill(); err != nil {
+			logger.Error(err)
+		}
+		state, err := s.process.Wait()
+		if err != nil {
+			logger.Error(err)
+		}
+		logger.Infof("proc id: %s exit state: %s", state.Pid(), state.String())
+
+		tk.Stop()
+
+		s.mgr.delProcess(s.uniqueId)
+
+		// 删除etcd注册信息
+	}()
 
 	for {
 		select {
@@ -194,17 +216,9 @@ func (s *StrategyProcess) task() {
 		case <-tk.C:
 			// 向etcd注册
 			// 刷新etcd
+		case <-s.conn:
 		}
 	}
-}
-
-func (s *StrategyProcess) waitProc() {
-	state, err := s.process.Wait()
-	if err != nil {
-		logger.Error(err)
-	}
-	logger.Infof("proc id: %s exit state: %s", state.Pid(), state.String())
-	s.release()
 }
 
 func (s *StrategyProcess) startStrategy(startReq *mgrpb.StartTaskRequest) error {
@@ -230,18 +244,6 @@ func (s *StrategyProcess) startStrategy(startReq *mgrpb.StartTaskRequest) error 
 	return nil
 }
 
-func (s *StrategyProcess) release() {
-	s.once.Do(func() {
-		close(s.closeCh)
-		if err := s.conn.Close(); err != nil {
-			logger.Error(err)
-		}
-		if err := os.RemoveAll(s.unixFile); err != nil {
-			logger.Error(err)
-		}
-	})
-}
-
 func (s *StrategyProcess) unixConnect(addr string, t time.Duration) (net.Conn, error) {
 	addr, err := net.ResolveUnixAddr("unix", s.unixFile)
 	if err != nil {
@@ -252,8 +254,8 @@ func (s *StrategyProcess) unixConnect(addr string, t time.Duration) (net.Conn, e
 	return net.DialUnix("unix", nil, addr)
 }
 
-func (s *StrategyProcess) KillProc() {
-	if err := s.process.Kill(); err != nil {
-		logger.Error(err)
-	}
+func (s *StrategyProcess) Close() {
+	s.once.Do(func() {
+		close(s.closeCh)
+	})
 }
