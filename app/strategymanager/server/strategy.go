@@ -17,33 +17,11 @@ import (
 )
 
 func (s *StrategyManager) StartTask(ctx context.Context, in *mgrpb.StartTaskRequest) (*mgrpb.StartTaskResponse, error) {
-	// 创建策略进程
-	sp, err := s.createProcess(ctx, in)
-	if err != nil {
+	// 创建策略进程,并执行start
+	if err := s.createProccesAndStartStrategy(ctx, in); err != nil {
 		logger.Error(err)
 		return nil, err
 	}
-
-	// 发送命令
-	req := &spb.StartStrategyRequest{
-		UserId:       in.UserId,
-		Exchange:     in.Exchange,
-		ApiKey:       in.ApiKey,
-		SecretKey:    in.SecretKey,
-		Passphrase:   in.Passphrase,
-		StrategyName: in.StrategyName,
-		InstrumentId: in.InstrumentId,
-		Endpoint:     in.Endpoint,
-		WsEndpoint:   in.WsEndpoint,
-		Params:       in.Params,
-	}
-	_, err = sp.Client.StartStrategy(ctx, req)
-	if err != nil {
-		logger.Error(err)
-		return nil, err
-	}
-
-	// 向etcd注册
 
 	return &mgrpb.StartTaskResponse{}, nil
 }
@@ -122,26 +100,31 @@ func (s *StrategyManager) delProc(uniqueId string) error {
 	return nil
 }
 
-func (s *StrategyManager) createProcess(ctx context.Context, in *mgrpb.StartTaskRequest) (*StrategyProcess, error) {
+func (s *StrategyManager) createProccesAndStartStrategy(ctx context.Context, in *mgrpb.StartTaskRequest) error {
 	uniqueId := fmt.Sprintf("%s-%s-%s", in.ApiKey, in.StrategyName, in.InstrumentId)
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if _, ok := s.processes[uniqueId]; ok {
-		return nil, fmt.Errorf("%s already existed", uniqueId)
+		return fmt.Errorf("%s already existed", uniqueId)
 	}
 
-	path := filepath.Join(s.config.Process.Path, in.StrategyName)
-	sp, err := NewStrategyProcess(path, uniqueId, s.procExitCh)
+	sp, err := NewStrategyProcess(s, in)
 	if err != nil {
 		logger.Error(err)
-		return nil, err
+		return err
 	}
 	s.processes[uniqueId] = sp
-	return sp, nil
+	return nil
+}
+
+func (s *StrategyManager) getProcDir() string {
+	return s.config.Process.Path
 }
 
 type StrategyProcess struct {
+	mgr *StrategyManager
+
 	uniqueId string
 	process  *os.Process
 
@@ -149,18 +132,20 @@ type StrategyProcess struct {
 	conn     *grpc.ClientConn
 	Client   spb.StrategyClient
 
-	procExitCh chan<- string
+	startStrategyReq *spb.StartStrategyRequest
 
-	once sync.Once
+	once    sync.Once
+	closeCh chan bool
 }
 
-func NewStrategyProcess(path, uniqueId string, procExitCh chan<- string) (*StrategyProcess, error) {
+func NewStrategyProcess(mgr *StrategyManager, startReq *mgrpb.StartTaskRequest) (*StrategyProcess, error) {
 	unixFile := filepath.Join(os.TempDir(), util.GetUUID())
 	argv := []string{unixFile}
 	attr := &os.ProcAttr{
 		//Env: os.Environ(),
 		//Files: []*os.File{},
 	}
+	path := filepath.Join(mgr.getProcDir(), startReq.StrategyName)
 	process, err := os.StartProcess(path, argv, attr)
 	if err != nil {
 		logger.Error(err)
@@ -168,10 +153,11 @@ func NewStrategyProcess(path, uniqueId string, procExitCh chan<- string) (*Strat
 	}
 
 	sp := &StrategyProcess{
-		uniqueId:   uniqueId,
-		process:    process,
-		unixFile:   unixFile,
-		procExitCh: procExitCh,
+		mgr:      mgr,
+		uniqueId: fmt.Sprintf("%s-%s-%s", startReq.ApiKey, startReq.StrategyName, startReq.InstrumentId),
+		process:  process,
+		unixFile: unixFile,
+		closeCh:  make(chan bool),
 	}
 
 	conn, err := grpc.Dial(unixFile, grpc.WithInsecure(), grpc.WithDialer(sp.unixConnect))
@@ -184,9 +170,76 @@ func NewStrategyProcess(path, uniqueId string, procExitCh chan<- string) (*Strat
 	sp.conn = conn
 	sp.Client = spb.NewStrategyClient(sp.conn)
 
+	go sp.task()
 	go sp.waitProc()
 
+	if err := sp.startStrategy(startReq); err != nil {
+		logger.Error(err)
+		s.process.Kill()
+		sp.release()
+		return nil, err
+	}
+
 	return sp, nil
+}
+
+func (s *StrategyProcess) task() {
+	tk := time.NewTicker(time.Second * 3)
+	defer tk.Stop()
+
+	for {
+		select {
+		case <-s.closeCh:
+			return
+		case <-tk.C:
+			// 向etcd注册
+			// 刷新etcd
+		}
+	}
+}
+
+func (s *StrategyProcess) waitProc() {
+	state, err := s.process.Wait()
+	if err != nil {
+		logger.Error(err)
+	}
+	logger.Infof("proc id: %s exit state: %s", state.Pid(), state.String())
+	s.release()
+}
+
+func (s *StrategyProcess) startStrategy(startReq *mgrpb.StartTaskRequest) error {
+	// 发送命令
+	s.startStrategyReq = &spb.StartStrategyRequest{
+		UserId:       startReq.UserId,
+		Exchange:     startReq.Exchange,
+		ApiKey:       startReq.ApiKey,
+		SecretKey:    startReq.SecretKey,
+		Passphrase:   startReq.Passphrase,
+		StrategyName: startReq.StrategyName,
+		InstrumentId: startReq.InstrumentId,
+		Endpoint:     startReq.Endpoint,
+		WsEndpoint:   startReq.WsEndpoint,
+		Params:       startReq.Params,
+	}
+	_, err = sp.Client.StartStrategy(ctx, s.startStrategyReq)
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+
+	return nil
+}
+
+func (s *StrategyProcess) release() {
+	s.once.Do(func() {
+		close(s.closeCh)
+		if err := s.conn.Close(); err != nil {
+			logger.Error(err)
+		}
+		if err := os.RemoveAll(s.unixFile); err != nil {
+			logger.Error(err)
+		}
+	})
 }
 
 func (s *StrategyProcess) unixConnect(addr string, t time.Duration) (net.Conn, error) {
@@ -197,27 +250,6 @@ func (s *StrategyProcess) unixConnect(addr string, t time.Duration) (net.Conn, e
 	}
 
 	return net.DialUnix("unix", nil, addr)
-}
-
-func (s *StrategyProcess) waitProc() {
-	state, err := s.process.Wait()
-	if err != nil {
-		logger.Error(err)
-	}
-	logger.Infof("proc id: %s exit state: %s", state.Pid(), state.String())
-	s.close()
-	s.procExitCh <- s.uniqueId
-}
-
-func (s *StrategyProcess) close() {
-	s.once.Do(func() {
-		if err := s.conn.Close(); err != nil {
-			logger.Error(err)
-		}
-		if err := os.RemoveAll(s.unixFile); err != nil {
-			logger.Error(err)
-		}
-	})
 }
 
 func (s *StrategyProcess) KillProc() {

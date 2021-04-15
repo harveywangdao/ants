@@ -14,17 +14,13 @@ import (
 type StrategyManager struct {
 	config *Config
 
-	processes  map[string]*StrategyProcess
-	mu         sync.RWMutex
-	procExitCh chan string
-
-	once sync.Once
+	processes map[string]*StrategyProcess
+	mu        sync.RWMutex
 }
 
 func NewStrategyManager(configPath string) (*StrategyManager, error) {
 	mgr := &StrategyManager{
-		processes:  make(map[string]*StrategyProcess),
-		procExitCh: make(chan string),
+		processes: make(map[string]*StrategyProcess),
 	}
 
 	config, err := mgr.getConfig(configPath)
@@ -57,13 +53,4 @@ func (s *StrategyManager) Start(port string) error {
 	}
 
 	return nil
-}
-
-func (s *StrategyManager) monitor() {
-	for {
-		select {
-		case uniqueId := <-s.procExitCh:
-			s.delProc(uniqueId)
-		}
-	}
 }
