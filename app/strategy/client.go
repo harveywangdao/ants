@@ -276,6 +276,47 @@ func do6() {
 	c2.Close()
 }
 
+func do7() {
+	fds, err := syscall.Socketpair(syscall.AF_LOCAL, syscall.SOCK_STREAM, 0)
+	if err != nil {
+		logger.Error(err)
+		return
+	}
+	f1 := os.NewFile(uintptr(fds[0]), "")
+
+	f2 := os.NewFile(uintptr(fds[1]), "")
+	c2, err := net.FileConn(f2)
+	if err != nil {
+		logger.Error(err)
+		return
+	}
+
+	argv := []string{"./bottle", unixFile}
+	attr := &os.ProcAttr{
+		Files: []*os.File{os.Stdin, os.Stdout, os.Stderr, f1},
+	}
+	process, err := os.StartProcess("./bottle", argv, attr)
+	if err != nil {
+		logger.Error(err)
+		return
+	}
+	logger.Info("pid:", process.Pid)
+
+	f1.Close()
+	f2.Close()
+
+	buf := make([]byte, 128)
+	for {
+		n, err := c2.Read(buf)
+		if err != nil {
+			logger.Error(err)
+			time.Sleep(time.Second * 3)
+		} else {
+			logger.Info("recv msg:", string(buf[:n]))
+		}
+	}
+}
+
 func main() {
-	do1()
+	do7()
 }

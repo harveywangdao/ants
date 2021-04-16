@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	//"fmt"
 	"log"
 	"net"
 	"os"
@@ -91,6 +92,32 @@ func do2() {
 	logger.Fatal(s.Serve(lis))
 }
 
+func do7() {
+	/*connFile := os.NewFile(uintptr(3), "/tmp/45615641465414")
+	conn, err := net.FileConn(connFile)
+	if err != nil {
+		logger.Fatal(err)
+		return
+	}*/
+
+	count := 0
+	for {
+		/*n, err := conn.Write([]byte(time.Now().String()))
+		if err != nil {
+			logger.Error(err)
+		} else {
+			logger.Infof("send msg %d bytes", n)
+		}*/
+		time.Sleep(time.Second * 2)
+		count++
+
+		if count == 5 {
+			var p *int
+			*p = 1
+		}
+	}
+}
+
 func main() {
-	do1()
+	do7()
 }
