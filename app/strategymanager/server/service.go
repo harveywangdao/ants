@@ -12,7 +12,7 @@ import (
 )
 
 type StrategyManager struct {
-	config *Config
+	Config *Config
 
 	processes map[string]*StrategyProcess
 	mu        sync.RWMutex
@@ -28,9 +28,7 @@ func NewStrategyManager(configPath string) (*StrategyManager, error) {
 		logger.Fatal(err)
 		return nil, err
 	}
-	mgr.config = config
-
-	go mgr.monitor()
+	mgr.Config = config
 
 	return mgr, nil
 }

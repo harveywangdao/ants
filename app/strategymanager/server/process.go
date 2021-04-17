@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net"
 	"os"
@@ -15,6 +16,9 @@ import (
 	"github.com/harveywangdao/ants/app/scheduler/util/logger"
 	spb "github.com/harveywangdao/ants/app/strategymanager/protos/strategy"
 	mgrpb "github.com/harveywangdao/ants/app/strategymanager/protos/strategymanager"
+	"go.etcd.io/etcd/clientv3"
+	"go.etcd.io/etcd/clientv3/concurrency"
+	mvccpb "go.etcd.io/etcd/mvcc/mvccpb"
 	"google.golang.org/grpc"
 )
 
@@ -49,6 +53,8 @@ type StrategyProcess struct {
 
 	once    sync.Once
 	closeCh chan bool
+
+	leaseid clientv3.LeaseID
 }
 
 func NewStrategyProcess(mgr *StrategyManager, startReq *mgrpb.StartTaskRequest) (*StrategyProcess, error) {
@@ -209,6 +215,88 @@ func (sp *StrategyProcess) watchTask() {
 	sp.restartProcessCh <- true
 }
 
+type StrategyNode struct {
+	Addr string `json:"addr"`
+}
+
+func (s *StrategyProcess) register() error {
+	cli, err := clientv3.New(clientv3.Config{
+		Endpoints: s.mgr.Config.Etcd.Endpoints,
+	})
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+	defer cli.Close()
+
+	if s.leaseid != 0 {
+		timeToLiveResp, err := cli.TimeToLive(context.TODO(), s.leaseid)
+		if err != nil {
+			logger.Error(err)
+			return err
+		}
+		if timeToLiveResp.TTL == -1 {
+			s.leaseid = 0
+		}
+	}
+
+	if s.leaseid == 0 {
+		resp, err := cli.Grant(context.TODO(), 5*time.Second)
+		if err != nil {
+			logger.Error(err)
+			return err
+		}
+		s.leaseid = resp.ID
+
+		node := &StrategyNode{
+			Addr: "",
+		}
+		data, err := json.Marshal(node)
+		if err != nil {
+			logger.Error(err)
+			return err
+		}
+
+		key := "/strategy/"
+		_, err = cli.Put(context.TODO(), key, string(data), clientv3.WithLease(s.leaseid))
+		if err != nil {
+			logger.Error(err)
+			return err
+		}
+	}
+
+	resp, err := cli.KeepAliveOnce(context.TODO(), s.leaseid)
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+	logger.Info(resp)
+
+	return nil
+}
+
+func (s *StrategyProcess) unregister() error {
+	if s.leaseid == 0 {
+		return nil
+	}
+
+	cli, err := clientv3.New(clientv3.Config{
+		Endpoints: s.mgr.Config.Etcd.Endpoints,
+	})
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+	defer cli.Close()
+
+	_, err = cli.Revoke(context.TODO(), s.leaseid)
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+	return nil
+}
+
 func (sp *StrategyProcess) restartProcess() error {
 	// 创建无名unix domain socket,用来监控子进程是否挂掉
 	fds, err := syscall.Socketpair(syscall.AF_LOCAL, syscall.SOCK_STREAM, 0)
@@ -300,4 +388,5 @@ func (sp *StrategyProcess) Close() {
 /*
 1.更新参数
 2.etcd注册，刷新
+3.如何获取本地地址
 */

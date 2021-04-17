@@ -119,5 +119,5 @@ func (s *StrategyManager) createProccesAndStartStrategy(ctx context.Context, in 
 }
 
 func (s *StrategyManager) getProcDir() string {
-	return s.config.Process.Path
+	return s.Config.Process.Path
 }
