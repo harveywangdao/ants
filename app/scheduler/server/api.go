@@ -60,12 +60,12 @@ func (s *HttpService) setRouter() {
 }
 
 /*
-1.增加策略任务,apikey&strategy&instrumentid唯一标识一个策略任务,要加分布式锁
-2.查询策略任务,查询策略是否在运行,查询apikey的所有策略
+1.增加策略任务,apikey&strategy&instrumentid唯一标识策略任务,要加分布式锁
+2.查询策略任务,查询apikey的所有策略,查询策略是否在运行
 3.开始策略任务,调度时选择负载最小的节点,要加分布式锁
 4.更新策略参数,要加分布式锁
 5.停止策略,要加分布式锁
-6.删除策略,要加分布式锁
+6.删除策略,在运行的策略不能删除,要加分布式锁
 7.节点挂掉重新调度此节点上的策略,要加分布式锁
 
 策略manager启动时向etcd注册,/service/strategymanager/10.22.33.55:32154 --> {"uptime":111111111, "available":true}
@@ -78,5 +78,11 @@ func (s *HttpService) setRouter() {
 调度服务调度时记录节点上运行的任务,/scheduler/node/10.22.33.55:32154/$apikey/$strategy/$instrumentid --> {"uptime":111111111}
                                 /scheduler/strategy/$apikey/$strategy/$instrumentid --> {"addr":"10.22.33.55:32154", "uptime":111111111, "available":true}
 
-定时任务遍历/strategy/task,检查addr是否在线,不在线则重新调度
+定时任务遍历/scheduler/strategy/$apikey/$strategy/$instrumentid,检查addr是否在线,不在线则重新调度
+
+分布式锁
+事务
+主从
+apiserver
+
 */

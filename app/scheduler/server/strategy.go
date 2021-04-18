@@ -209,7 +209,7 @@ func (s *HttpService) DelStrategyTask(c *gin.Context) {
 		return
 	}
 
-	// TODO:如果在运行就停止策略
+	// TODO:如果在运行就直接返回
 }
 
 func (s *HttpService) StartStrategyTask(c *gin.Context) {
@@ -226,7 +226,7 @@ func (s *HttpService) StartStrategyTask(c *gin.Context) {
 
 	if err := s.startStrategyTask(req); err != nil {
 		logger.Error(err)
-		AbortWithErrMsg(c, http.StatusBadRequest, err.Error())
+		AbortWithErrMsg(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 }
@@ -238,6 +238,8 @@ func (s *HttpService) startStrategyTask(req *StrategyData) error {
 	strategyTaskPath := fmt.Sprintf("%s/%s/%s/%s", StrategyTaskPrefix, req.ApiKey, req.StrategyName, req.Symbol)
 
 	// 检查策略是否存在
+
+	// 检查策略是否已经开始
 
 	// 开始策略
 
@@ -257,7 +259,7 @@ func (s *HttpService) StopStrategyTask(c *gin.Context) {
 	}
 	if err := s.stopStrategyTask(req); err != nil {
 		logger.Error(err)
-		AbortWithErrMsg(c, http.StatusBadRequest, err.Error())
+		AbortWithErrMsg(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 }
@@ -296,7 +298,7 @@ type NodeInfo struct {
 	ApiKeys map[string]int `json"apiKeys"`
 }
 
-func (s *Scheduler) StartStrategyTask(apiKey, secretKey, strategy string) {
+func (s *Scheduler) StartOneStrategyTask(apiKey, secretKey, strategy string) {
 	s.startCh <- &StrategyParam{
 		ApiKey:    apiKey,
 		SecretKey: secretKey,
@@ -304,7 +306,7 @@ func (s *Scheduler) StartStrategyTask(apiKey, secretKey, strategy string) {
 	}
 }
 
-func (s *Scheduler) StopStrategyTask(apiKey string) {
+func (s *Scheduler) StopOneStrategyTask(apiKey string) {
 	s.stopCh <- &StrategyParam{
 		ApiKey: apiKey,
 	}
