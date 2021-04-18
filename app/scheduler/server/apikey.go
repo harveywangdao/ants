@@ -18,27 +18,23 @@ func (s *HttpService) AddApikey(c *gin.Context) {
 		return
 	}
 
-	if req.UserID == "" || req.ApiKey == "" || req.SecretKey == "" || req.Exchange == "" || req.Strategy == "" || req.Rate < 0.0 {
+	if req.UserID == "" || req.ApiKey == "" || req.SecretKey == "" || req.Exchange == "" {
 		AbortWithErrMsg(c, http.StatusBadRequest, "param can not be empty")
 		return
 	}
 
 	apiKey := model.ApiKeyModel{
-		UserID:    req.UserID,
-		ApiKey:    req.ApiKey,
-		SecretKey: req.SecretKey,
-		Exchange:  req.Exchange,
-		Strategy:  req.Strategy,
-		Rate:      req.Rate,
-		Status:    1,
+		UserID:     req.UserID,
+		ApiKey:     req.ApiKey,
+		SecretKey:  req.SecretKey,
+		Passphrase: req.Passphrase,
+		Exchange:   req.Exchange,
 	}
 	if err := s.db.Create(&apiKey).Error; err != nil {
 		logger.Error(err)
 		AbortWithErrMsg(c, http.StatusInternalServerError, err.Error())
 		return
 	}
-
-	// TODO: 启动策略
 }
 
 func (s *HttpService) QueryUserApikeys(c *gin.Context) {
@@ -70,31 +66,4 @@ func (s *HttpService) QueryUserApikeys(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"apiKeys": list,
 	})
-}
-
-func (s *HttpService) ChangeStrategy(c *gin.Context) {
-	req := model.ApiKeyModel{}
-	if err := c.BindJSON(&req); err != nil {
-		logger.Error(err)
-		AbortWithErrMsg(c, http.StatusBadRequest, err.Error())
-		return
-	}
-
-	if req.UserID == "" || req.ApiKey == "" || req.Strategy == "" {
-		AbortWithErrMsg(c, http.StatusBadRequest, "param can not be empty")
-		return
-	}
-
-	param := map[string]interface{}{
-		"strategy": req.Strategy,
-	}
-	if req.Rate >= 0.0 {
-		param["rate"] = req.Rate
-	}
-
-	if err := s.db.Model(model.ApiKeyModel{}).Where("api_key = ? AND user_id = ?", req.ApiKey, req.UserID).Updates(param).Error; err != nil {
-		logger.Error(err)
-		AbortWithErrMsg(c, http.StatusInternalServerError, err.Error())
-		return
-	}
 }

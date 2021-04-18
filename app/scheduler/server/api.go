@@ -35,7 +35,7 @@ func (s *HttpService) setRouter() {
 	// 查询策略任务,查询apikey的所有策略,策略任务是否在运行
 	s.router.GET("/v1/api/strategy/tasks", s.QueryStrategyTasks)
 	// 更新策略参数
-	s.router.PUT("/v1/api/strategy/task", s.UpdateStrategyTaskParam)
+	s.router.PUT("/v1/api/strategy/task", s.UpdateStrategyTask)
 	// 删除策略
 	s.router.DELETE("/v1/api/strategy/task", s.DelStrategyTask)
 
@@ -70,11 +70,13 @@ func (s *HttpService) setRouter() {
 
 策略manager启动时向etcd注册,/service/strategymanager/10.22.33.55:32154 --> {"uptime":111111111, "available":true}
 
-调度服务增加一个策略任务,/scheduler/strategy/$apikey/$strategy/$instrumentid --> {"addr":"10.22.33.55:32154", "uptime":111111111, "available":true, "param"："xxxx"}
+调度服务增加一个策略任务,/strategy/task/$apikey/$strategy/$instrumentid --> {uptime":111111111, "available":true, "param"："xxxx"}
 
-调度服务watch /service/strategymanager,有节点下线就重新调度节点上的任务,再删除/scheduler/strategynode/10.22.33.55:32154 --prefix
+调度服务watch /service/strategymanager,有节点下线就重新调度节点上的任务,再删除/scheduler/node/10.22.33.55:32154 --prefix
+                                                                          /scheduler/strategy/$apikey/$strategy/$instrumentid
 
-调度服务调度时记录节点上运行的任务,/scheduler/strategynode/10.22.33.55:32154/$apikey/$strategy/$instrumentid --> {"uptime":111111111}
+调度服务调度时记录节点上运行的任务,/scheduler/node/10.22.33.55:32154/$apikey/$strategy/$instrumentid --> {"uptime":111111111}
+                                /scheduler/strategy/$apikey/$strategy/$instrumentid --> {"addr":"10.22.33.55:32154", "uptime":111111111, "available":true}
 
-定时任务遍历/scheduler/strategy,检查addr是否在线,不在线则重新调度
+定时任务遍历/strategy/task,检查addr是否在线,不在线则重新调度
 */
