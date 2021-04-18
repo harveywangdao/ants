@@ -2,20 +2,15 @@ package server
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net"
-	"os"
-	"path/filepath"
-	"sync"
-	"sync/atomic"
-	"syscall"
 	"time"
 
-	"github.com/harveywangdao/ants/app/scheduler/util"
 	"github.com/harveywangdao/ants/app/scheduler/util/logger"
 	spb "github.com/harveywangdao/ants/app/strategymanager/protos/strategy"
 	mgrpb "github.com/harveywangdao/ants/app/strategymanager/protos/strategymanager"
-	"google.golang.org/grpc"
+	"go.etcd.io/etcd/clientv3"
 )
 
 func (s *StrategyManager) StartTask(ctx context.Context, in *mgrpb.StartTaskRequest) (*mgrpb.StartTaskResponse, error) {
@@ -120,4 +115,130 @@ func (s *StrategyManager) createProccesAndStartStrategy(ctx context.Context, in 
 
 func (s *StrategyManager) getProcDir() string {
 	return s.Config.Process.Path
+}
+
+func (s *StrategyManager) registerTask(port int) {
+	cli, err := clientv3.New(clientv3.Config{
+		Endpoints: s.Config.Etcd.Endpoints,
+	})
+	if err != nil {
+		logger.Fatal(err)
+		return
+	}
+	tk := time.NewTicker(time.Second * 3)
+
+	var leaseid clientv3.LeaseID
+	defer func() {
+		tk.Stop()
+		// 删除etcd注册信息
+		s.unregister(cli, leaseid)
+		cli.Close()
+	}()
+
+	for {
+		select {
+		case <-s.closeCh:
+			return
+		case <-tk.C:
+			leaseid, err = s.register(cli, leaseid, port)
+			if err != nil {
+				logger.Error(err)
+			}
+		}
+	}
+}
+
+type RegisterInfo struct {
+	Uptime    int64 `json:"uptime"`
+	Available bool  `json:"available"`
+}
+
+func (s *StrategyManager) register(cli *clientv3.Client, leaseid clientv3.LeaseID, port int) (clientv3.LeaseID, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if leaseid != 0 {
+		timeToLiveResp, err := cli.TimeToLive(ctx, leaseid)
+		if err != nil {
+			logger.Error(err)
+			return leaseid, err
+		}
+		if timeToLiveResp.TTL == -1 {
+			leaseid = 0
+		}
+	}
+
+	if leaseid == 0 {
+		resp, err := cli.Grant(ctx, 5)
+		if err != nil {
+			logger.Error(err)
+			return leaseid, err
+		}
+		leaseid = resp.ID
+
+		info := &RegisterInfo{
+			Uptime:    time.Now().Unix(),
+			Available: true,
+		}
+		data, err := json.Marshal(info)
+		if err != nil {
+			logger.Error(err)
+			return leaseid, err
+		}
+
+		localIp := s.GetLocalIp()
+		if localIp == "" {
+			err = fmt.Errorf("can not get local ip")
+			logger.Fatal(err)
+			return leaseid, err
+		}
+
+		// /service/strategymanager/10.22.33.55:32154 --> {"uptime":111111111, "available":true}
+		key := fmt.Sprintf("/service/strategymanager/%s:%d", localIp, port)
+		_, err = cli.Put(ctx, key, string(data), clientv3.WithLease(leaseid))
+		if err != nil {
+			logger.Error(err)
+			return leaseid, err
+		}
+	} else {
+		resp, err := cli.KeepAliveOnce(ctx, leaseid)
+		if err != nil {
+			logger.Error(err)
+			return leaseid, err
+		}
+		logger.Info(resp)
+	}
+
+	return leaseid, nil
+}
+
+func (s *StrategyManager) unregister(cli *clientv3.Client, leaseid clientv3.LeaseID) error {
+	if leaseid == 0 {
+		return nil
+	}
+	_, err := cli.Revoke(context.TODO(), leaseid)
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+	return nil
+}
+
+func (s *StrategyManager) GetLocalIp() string {
+	addrs, err := net.InterfaceAddrs()
+	if err != nil {
+		logger.Error(err)
+		return ""
+	}
+
+	ip := ""
+	for _, addr := range addrs {
+		if ipnet, ok := addr.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
+			if ipnet.IP.To4() != nil {
+				ip = ipnet.IP.String()
+				logger.Info("ip:", ip)
+			}
+		}
+	}
+
+	return ip
 }

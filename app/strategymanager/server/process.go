@@ -17,8 +17,6 @@ import (
 	spb "github.com/harveywangdao/ants/app/strategymanager/protos/strategy"
 	mgrpb "github.com/harveywangdao/ants/app/strategymanager/protos/strategymanager"
 	"go.etcd.io/etcd/clientv3"
-	"go.etcd.io/etcd/clientv3/concurrency"
-	mvccpb "go.etcd.io/etcd/mvcc/mvccpb"
 	"google.golang.org/grpc"
 )
 
@@ -241,7 +239,7 @@ func (s *StrategyProcess) register() error {
 	}
 
 	if s.leaseid == 0 {
-		resp, err := cli.Grant(context.TODO(), 5*time.Second)
+		resp, err := cli.Grant(context.TODO(), 5)
 		if err != nil {
 			logger.Error(err)
 			return err
@@ -361,7 +359,7 @@ func (sp *StrategyProcess) destoryProcess() {
 }
 
 func (sp *StrategyProcess) startStrategy() error {
-	_, err = sp.Client.StartStrategy(ctx, sp.startStrategyReq)
+	_, err := sp.Client.StartStrategy(context.Background(), sp.startStrategyReq)
 	if err != nil {
 		logger.Error(err)
 		return err
@@ -384,9 +382,3 @@ func (sp *StrategyProcess) Close() {
 		close(sp.closeCh)
 	})
 }
-
-/*
-1.更新参数
-2.etcd注册，刷新
-3.如何获取本地地址
-*/

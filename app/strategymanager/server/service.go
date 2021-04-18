@@ -2,13 +2,12 @@ package server
 
 import (
 	"net"
-	"os"
 	"sync"
-	"time"
 
 	"github.com/harveywangdao/ants/app/scheduler/util/logger"
 	pb "github.com/harveywangdao/ants/app/strategymanager/protos/strategymanager"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
 )
 
 type StrategyManager struct {
@@ -16,11 +15,14 @@ type StrategyManager struct {
 
 	processes map[string]*StrategyProcess
 	mu        sync.RWMutex
+
+	closeCh chan bool
 }
 
 func NewStrategyManager(configPath string) (*StrategyManager, error) {
 	mgr := &StrategyManager{
 		processes: make(map[string]*StrategyProcess),
+		closeCh:   make(chan bool),
 	}
 
 	config, err := mgr.getConfig(configPath)
@@ -40,6 +42,8 @@ func (s *StrategyManager) Start(port string) error {
 		return err
 	}
 	logger.Info("rpc server:", lis.Addr())
+
+	go s.registerTask(lis.Addr().(*net.TCPAddr).Port)
 
 	srv := grpc.NewServer()
 	pb.RegisterStrategyManagerServer(srv, s)

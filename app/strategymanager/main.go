@@ -16,7 +16,7 @@ func init() {
 
 func main() {
 	port := flag.String("port", "8080", "port")
-	configPath := flag.String("configPath", "conf/app.yaml", "port")
+	configPath := flag.String("configPath", "conf/app.yaml", "config path")
 	flag.Parse()
 
 	srv, err := server.NewStrategyManager(*configPath)
