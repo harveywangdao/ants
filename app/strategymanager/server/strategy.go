@@ -127,7 +127,7 @@ func (s *StrategyManager) registerTask(port int) {
 	}
 	tk := time.NewTicker(time.Second * 3)
 
-	var leaseid clientv3.LeaseID
+	leaseid, _ := s.register(cli, 0, port)
 	defer func() {
 		tk.Stop()
 		// 删除etcd注册信息
@@ -199,13 +199,14 @@ func (s *StrategyManager) register(cli *clientv3.Client, leaseid clientv3.LeaseI
 			logger.Error(err)
 			return leaseid, err
 		}
+		logger.Infof("%s --> %s", key, string(data))
 	} else {
-		resp, err := cli.KeepAliveOnce(ctx, leaseid)
+		_, err := cli.KeepAliveOnce(ctx, leaseid)
 		if err != nil {
 			logger.Error(err)
 			return leaseid, err
 		}
-		logger.Info(resp)
+		logger.Debug("register keepalive, leaseid:", leaseid)
 	}
 
 	return leaseid, nil
@@ -230,15 +231,61 @@ func (s *StrategyManager) GetLocalIp() string {
 		return ""
 	}
 
-	ip := ""
 	for _, addr := range addrs {
 		if ipnet, ok := addr.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
 			if ipnet.IP.To4() != nil {
-				ip = ipnet.IP.String()
-				logger.Info("ip:", ip)
+				return ipnet.IP.String()
 			}
 		}
 	}
 
+	return ""
+}
+
+func (s *StrategyManager) GetLocalIp2() string {
+	ifaces, err := net.Interfaces()
+	if err != nil {
+		logger.Error(err)
+		return ""
+	}
+
+	for _, iface := range ifaces {
+		if iface.Flags&net.FlagUp == 0 {
+			continue
+		}
+		if iface.Flags&net.FlagLoopback != 0 {
+			continue
+		}
+		addrs, err := iface.Addrs()
+		if err != nil {
+			logger.Error(err)
+			return ""
+		}
+		for _, addr := range addrs {
+			ip := s.getIpFromAddr(addr)
+			if ip == nil {
+				continue
+			}
+			return ip.String()
+		}
+	}
+	return ""
+}
+
+func (s *StrategyManager) getIpFromAddr(addr net.Addr) net.IP {
+	var ip net.IP
+	switch v := addr.(type) {
+	case *net.IPNet:
+		ip = v.IP
+	case *net.IPAddr:
+		ip = v.IP
+	}
+	if ip == nil || ip.IsLoopback() {
+		return nil
+	}
+	ip = ip.To4()
+	if ip == nil {
+		return nil
+	}
 	return ip
 }

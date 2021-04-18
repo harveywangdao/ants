@@ -18,34 +18,14 @@ type EtcdConfig struct {
 	Endpoints []string `yaml:"endpoints" json:"endpoints"`
 }
 
-type GrpcServerConfig struct {
-	Name string `yaml:"name" json:"name"`
-	Port string `yaml:"port" json:"port"`
-}
-
-type HttpServerConfig struct {
-	Port string `yaml:"port" json:"port"`
-}
-
-type DatabaseConfig struct {
-	Address    string `yaml:"address" json:"address"`
-	Username   string `yaml:"username" json:"username"`
-	Password   string `yaml:"password" json:"password"`
-	DriverName string `yaml:"driverName" json:"driverName"`
-	DbName     string `yaml:"dbName" json:"dbName"`
-}
-
 type ProcessConfig struct {
 	Path string `yaml:"path" json:"path"`
 }
 
 type Config struct {
-	Log        *LogConfig        `yaml:"log" json:"log"`
-	Etcd       *EtcdConfig       `yaml:"etcd" json:"etcd"`
-	Server     *GrpcServerConfig `yaml:"grpcServer" json:"grpcServer"`
-	HttpServer *HttpServerConfig `yaml:"httpServer" json:"httpServer"`
-	Database   *DatabaseConfig   `yaml:"database" json:"database"`
-	Process    *ProcessConfig    `yaml:"process" json:"process"`
+	Log     *LogConfig     `yaml:"log" json:"log"`
+	Etcd    *EtcdConfig    `yaml:"etcd" json:"etcd"`
+	Process *ProcessConfig `yaml:"process" json:"process"`
 }
 
 func (s *StrategyManager) getConfig(configPath string) (*Config, error) {
