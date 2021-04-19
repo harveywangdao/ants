@@ -179,25 +179,6 @@ func (s *Scheduler) StartOneStrategyTask(req *StrategyData) error {
 	return nil
 }
 
-func (s *Scheduler) IsTaskRunning(req *StrategyData) (bool, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	// /scheduler/strategy/$apikey/$strategy/$instrumentid --> {"addr":"10.22.33.55:32154", "uptime":111111111, "available":true}
-	schedulerStrategyPath := fmt.Sprintf("%s/%s/%s/%s", EtcdSchedulerStrategyPrefix, req.ApiKey, req.StrategyName, req.Symbol)
-
-	// 查询策略节点地址
-	getResp, err := s.etcdClient.Get(ctx, schedulerStrategyPath)
-	if err != nil {
-		logger.Error(err)
-		return false, err
-	}
-	if len(getResp.Kvs) == 0 {
-		return false, nil
-	}
-	return true, nil
-}
-
 func (s *Scheduler) StopOneStrategyTask(req *StrategyData) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -300,6 +281,25 @@ func (s *Scheduler) UpdateOneStrategyTask(req *StrategyData) error {
 		return err
 	}
 	return nil
+}
+
+func (s *Scheduler) IsTaskRunning(req *StrategyData) (bool, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	// /scheduler/strategy/$apikey/$strategy/$instrumentid --> {"addr":"10.22.33.55:32154", "uptime":111111111, "available":true}
+	schedulerStrategyPath := fmt.Sprintf("%s/%s/%s/%s", EtcdSchedulerStrategyPrefix, req.ApiKey, req.StrategyName, req.Symbol)
+
+	// 查询策略节点地址
+	getResp, err := s.etcdClient.Get(ctx, schedulerStrategyPath)
+	if err != nil {
+		logger.Error(err)
+		return false, err
+	}
+	if len(getResp.Kvs) == 0 {
+		return false, nil
+	}
+	return true, nil
 }
 
 // 寻找运行策略最少的节点
@@ -444,6 +444,23 @@ func (s *Scheduler) masterRun() {
 	nodeName := util.GetUUID()
 	logger.Info("current node name:", nodeName)
 
+	defer func() {
+		getResp, err := election.Leader(context.Background())
+		if err != nil {
+			logger.Error(err)
+			return
+		}
+		for _, ev := range getResp.Kvs {
+			logger.Infof("%s : %s\n", ev.Key, ev.Value)
+			if string(ev.Value) == nodeName {
+				if err := election.Resign(context.Background()); err != nil {
+					logger.Error(err)
+				}
+				return
+			}
+		}
+	}()
+
 	for {
 		select {
 		case <-s.closed:
@@ -463,8 +480,11 @@ func (s *Scheduler) masterRun() {
 }
 
 func (s *Scheduler) masterDo(election *concurrency.Election, nodeName string) {
-	stopMasterCh := make(chan int)
+	stopMasterCh := make(chan bool)
 	go s.watchStrategyRegisterTask(stopMasterCh)
+	defer func() {
+		close(stopMasterCh)
+	}()
 
 	observeCh := election.Observe(context.Background())
 	for {
@@ -476,18 +496,103 @@ func (s *Scheduler) masterDo(election *concurrency.Election, nodeName string) {
 		case resp, ok := <-observeCh:
 			if !ok {
 				logger.Error("election observe closed")
-				close(stopMasterCh)
 				return
 			}
 
 			logger.Warn("electron:", resp)
 			if string(resp.Kvs[0].Value) != nodeName {
 				logger.Error("current node is not master")
-				close(stopMasterCh)
 				return
 			}
 		}
 	}
+}
+
+func (s *Scheduler) watchStrategyRegisterTask(stopMasterCh chan bool) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// /service/strategymanager/10.22.33.55:32154
+	rch := s.etcdClient.Watch(ctx, EtcdServiceManagerPrefix, clientv3.WithPrefix())
+
+	for {
+		select {
+		case wresp, ok := <-rch:
+			if !ok {
+				logger.Errorf("watch %s exit", EtcdServiceManagerPrefix)
+				return
+			}
+
+			for _, ev := range wresp.Events {
+				logger.Infof("%s %q : %q\n", ev.Type, ev.Kv.Key, ev.Kv.Value)
+				addr := strings.TrimPrefix(string(ev.Kv.Key), EtcdServiceManagerPrefix+"/")
+
+				switch ev.Type {
+				case mvccpb.PUT:
+				case mvccpb.DELETE:
+					// 重新调度此节点上任务
+					go s.restartStrategies(addr)
+				}
+			}
+		case <-stopMasterCh:
+			return
+		case <-s.closed:
+			return
+		}
+	}
+}
+
+func (s *Scheduler) restartStrategies(nodeAddr string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	// /scheduler/node/10.22.33.55:32154/$apikey/$strategy/$instrumentid
+	schedulerNodePath := fmt.Sprintf("%s/%s/", EtcdSchedulerNodePrefix, nodeAddr)
+	getResp, err := s.etcdClient.Get(ctx, schedulerNodePath, clientv3.WithPrefix())
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+
+	for _, kv := range getResp.Kvs {
+		logger.Infof("%s : %s\n", ev.Key, ev.Value)
+
+		parts := strings.Split(strings.TrimPrefix(string(kv.Key), schedulerNodePath), "/")
+		if len(parts) != 3 {
+			logger.Error("node key error, key:", string(kv.Key))
+			continue
+		}
+
+		s.restartOneStrategy(nodeAddr, &StrategyData{
+			ApiKey:       parts[0],
+			StrategyName: parts[1],
+			Symbol:       parts[2],
+		})
+	}
+
+	return nil
+}
+
+func (s *Scheduler) restartOneStrategy(nodeAddr string, req *StrategyData) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	// etcd删除映射信息
+	// /scheduler/strategy/$apikey/$strategy/$instrumentid --> {"addr":"10.22.33.55:32154", "uptime":111111111, "available":true}
+	schedulerStrategyPath := fmt.Sprintf("%s/%s/%s/%s", EtcdSchedulerStrategyPrefix, req.ApiKey, req.StrategyName, req.Symbol)
+
+	// /scheduler/node/10.22.33.55:32154/$apikey/$strategy/$instrumentid --> {"uptime":111111111}
+	schedulerNodePath := fmt.Sprintf("%s/%s/%s/%s/%s", EtcdSchedulerNodePrefix, nodeAddr, req.ApiKey, req.StrategyName, req.Symbol)
+	kvc := clientv3.NewKV(s.etcdClient)
+	txnResp, err := kvc.Txn(ctx).If().
+		Then(clientv3.OpDelete(schedulerNodePath), clientv3.OpDelete(schedulerStrategyPath)).
+		Commit()
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+
+	return s.StartOneStrategyTask(req)
 }
 
 func (s *Scheduler) Close() {
