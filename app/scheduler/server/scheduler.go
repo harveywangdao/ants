@@ -5,18 +5,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
-	"net/http"
 	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
 
-	"github.com/harveywangdao/ants/app/scheduler/model"
 	"github.com/harveywangdao/ants/app/scheduler/util"
 	"github.com/harveywangdao/ants/app/scheduler/util/logger"
 	mgrpb "github.com/harveywangdao/ants/app/strategymanager/protos/strategymanager"
 
-	"github.com/gin-gonic/gin"
 	"go.etcd.io/etcd/clientv3"
 	"go.etcd.io/etcd/clientv3/clientv3util"
 	"go.etcd.io/etcd/clientv3/concurrency"
@@ -148,6 +145,10 @@ func (s *Scheduler) StartOneStrategyTask(req *StrategyData) error {
 			logger.Error(err)
 			return err
 		}
+		if !txnResp2.Succeeded {
+			logger.Errorf("revoke fail, delete %s and %s fail", schedulerNodePath, schedulerStrategyPath)
+		}
+		return nil
 	}
 
 	// 连接策略服务
@@ -233,6 +234,9 @@ func (s *Scheduler) StopOneStrategyTask(req *StrategyData) error {
 		logger.Error(err)
 		return err
 	}
+	if !txnResp.Succeeded {
+		return fmt.Errorf("%s and %s delete fail", schedulerNodePath, schedulerStrategyPath)
+	}
 
 	return nil
 }
@@ -252,7 +256,7 @@ func (s *Scheduler) UpdateOneStrategyTask(req *StrategyData) error {
 	}
 	if len(getResp.Kvs) == 0 {
 		err = fmt.Errorf("%s not existed", schedulerStrategyPath)
-		logger.Errorf(err)
+		logger.Error(err)
 		return err
 	}
 	strategyInfo := &StrategyInfo{}
@@ -319,7 +323,7 @@ func (s *Scheduler) getAppropriateNode() string {
 	getResp, err := s.etcdClient.Get(ctx, EtcdServiceManagerPrefix, clientv3.WithPrefix())
 	if err != nil {
 		logger.Error(err)
-		return
+		return ""
 	}
 
 	minCount := math.MaxInt64
@@ -555,7 +559,7 @@ func (s *Scheduler) restartStrategies(nodeAddr string) error {
 	}
 
 	for _, kv := range getResp.Kvs {
-		logger.Infof("%s : %s\n", ev.Key, ev.Value)
+		logger.Infof("%s : %s\n", kv.Key, kv.Value)
 
 		parts := strings.Split(strings.TrimPrefix(string(kv.Key), schedulerNodePath), "/")
 		if len(parts) != 3 {
@@ -563,11 +567,13 @@ func (s *Scheduler) restartStrategies(nodeAddr string) error {
 			continue
 		}
 
-		s.restartOneStrategy(nodeAddr, &StrategyData{
+		if err := s.restartOneStrategy(nodeAddr, &StrategyData{
 			ApiKey:       parts[0],
 			StrategyName: parts[1],
 			Symbol:       parts[2],
-		})
+		}); err != nil {
+			logger.Error(err)
+		}
 	}
 
 	return nil
@@ -590,6 +596,9 @@ func (s *Scheduler) restartOneStrategy(nodeAddr string, req *StrategyData) error
 	if err != nil {
 		logger.Error(err)
 		return err
+	}
+	if !txnResp.Succeeded {
+		return fmt.Errorf("%s and %s delete fail", schedulerNodePath, schedulerStrategyPath)
 	}
 
 	return s.StartOneStrategyTask(req)

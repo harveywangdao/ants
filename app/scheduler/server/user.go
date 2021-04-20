@@ -19,6 +19,7 @@ type AddUserReq struct {
 	PhoneNumber string `json:"phoneNumber"`
 	Email       string `json:"email"`
 	Remark      string `json:"remark"`
+	Password    string `json:"password"`
 }
 
 func (s *HttpService) AddUser(c *gin.Context) {
@@ -83,7 +84,30 @@ func (s *HttpService) QueryUserList(c *gin.Context) {
 }
 
 func (s *HttpService) UserLogin(c *gin.Context) {
+	req := AddUserReq{}
+	if err := c.BindJSON(&req); err != nil {
+		logger.Error(err)
+		AbortWithErrMsg(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	if req.Email == "" || req.Password == "" {
+		AbortWithErrMsg(c, http.StatusBadRequest, "param can not be empty")
+		return
+	}
 
+	var user model.UserModel
+	if err := s.db.Where("email=?", req.Email).First(&user).Error; err != nil {
+		logger.Error(err)
+		AbortWithErrMsg(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	if user.Password != req.Password {
+		AbortWithErrMsg(c, http.StatusBadRequest, "password error")
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"userId": user.UserID,
+	})
 }
 
 type ChangePasswordReq struct {

@@ -59,7 +59,7 @@ func (u ApiKeyModel) TableName() string {
 }
 
 type StrategyModel struct {
-	ID         int64     `gorm:"column:id" json:"id"`
+	StrategyId int64     `gorm:"column:id" json:"strategy_id"`
 	Strategy   string    `gorm:"column:strategy" json:"strategy"`
 	Desc       string    `gorm:"column:desc" json:"desc"`
 	Param      string    `gorm:"column:param" json:"param"`
@@ -73,7 +73,7 @@ func (u StrategyModel) TableName() string {
 }
 
 type TemplateModel struct {
-	ID           int64     `gorm:"column:id" json:"id"`
+	TemplateId   int64     `gorm:"column:id" json:"template_id"`
 	StrategyId   int64     `gorm:"column:strategy_id" json:"strategy_id"`
 	TemplateName string    `gorm:"column:template_name" json:"template_name"`
 	Param        string    `gorm:"column:param" json:"param"`

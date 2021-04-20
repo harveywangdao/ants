@@ -4,21 +4,15 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"math"
 	"net/http"
 	"strings"
-	"sync"
 	"time"
 
-	"github.com/harveywangdao/ants/app/scheduler/model"
-	"github.com/harveywangdao/ants/app/scheduler/util"
 	"github.com/harveywangdao/ants/app/scheduler/util/logger"
 
 	"github.com/gin-gonic/gin"
 	"go.etcd.io/etcd/clientv3"
 	"go.etcd.io/etcd/clientv3/clientv3util"
-	"go.etcd.io/etcd/clientv3/concurrency"
-	mvccpb "go.etcd.io/etcd/mvcc/mvccpb"
 )
 
 const (
@@ -68,7 +62,6 @@ func (s *HttpService) AddStrategyTask(c *gin.Context) {
 }
 
 func (s *HttpService) addStrategyTask(c *gin.Context, req *StrategyData) error {
-	// /strategy/task/$apikey/$strategy/$instrumentid --> {"uptime":111111111, "available":true, "meta_data"："xxxx"}
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
@@ -82,6 +75,7 @@ func (s *HttpService) addStrategyTask(c *gin.Context, req *StrategyData) error {
 		return err
 	}
 
+	// /strategy/task/$apikey/$strategy/$instrumentid --> {"uptime":111111111, "available":true, "meta_data"："xxxx"}
 	strategyTaskPath := fmt.Sprintf("%s/%s/%s/%s", StrategyTaskPrefix, req.ApiKey, req.StrategyName, req.Symbol)
 	kvc := clientv3.NewKV(s.client)
 	txnResp, err := kvc.Txn(ctx).
@@ -109,7 +103,8 @@ func (s *HttpService) QueryStrategyTasks(c *gin.Context) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	strategyTaskPath := fmt.Sprintf("%s/%s", StrategyTaskPrefix, req.ApiKey)
+	// /strategy/task/$apikey/$strategy/$instrumentid --> {"uptime":111111111, "available":true, "meta_data"："xxxx"}
+	strategyTaskPath := fmt.Sprintf("%s/%s", StrategyTaskPrefix, apikey)
 	getResp, err := s.client.Get(ctx, strategyTaskPath, clientv3.WithPrefix())
 	if err != nil {
 		logger.Error(err)
@@ -126,8 +121,18 @@ func (s *HttpService) QueryStrategyTasks(c *gin.Context) {
 			return
 		}
 
+		parts := strings.Split(strings.TrimPrefix(string(kv.Key), StrategyTaskPrefix+"/"), "/")
+		if len(parts) != 3 {
+			logger.Error("error key:", string(kv.Key))
+			continue
+		}
+
 		info.Status = StrategyTaskStatusStop
-		running, err := s.scheduler.IsTaskRunning(req)
+		running, err := s.scheduler.IsTaskRunning(&StrategyData{
+			ApiKey:       parts[0],
+			StrategyName: parts[1],
+			Symbol:       parts[2],
+		})
 		if err != nil {
 			logger.Error(err)
 			AbortWithErrMsg(c, http.StatusInternalServerError, err.Error())
