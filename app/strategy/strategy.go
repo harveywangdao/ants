@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"io/ioutil"
 	"net/http"
 
@@ -51,20 +52,154 @@ func (s *StrategyClient) Ping() error {
 	}
 	defer resp.Body.Close()
 
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+
 	if resp.StatusCode != http.StatusOK {
-		body, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			logger.Error(err)
-			return err
-		}
 		logger.Error("ping fail, err:", string(body))
 	}
+
+	logger.Info(string(body))
+
+	return nil
+}
+
+func (s *StrategyClient) Time() error {
+	req, err := http.NewRequest(http.MethodGet, s.endpoint+"/api/v1/time", nil)
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+	resp, err := s.client.Do(req)
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		logger.Error("err:", string(body))
+	}
+
+	logger.Info(string(body))
+
+	return nil
+}
+
+type RateLimit struct {
+	RateLimitType string `json:"rateLimitType"`
+	Interval      string `json:"interval"`
+	IntervalNum   int    `json:"intervalNum"`
+	Limit         int    `json:"limit"`
+}
+
+type FilterInfo struct {
+	FilterType string `json:"filterType"`
+	MinPrice   string `json:"minPrice"`
+	MaxPrice   string `json:"maxPrice"`
+	TickSize   string `json:"tickSize"`
+}
+
+type SymbolInfo struct {
+	Symbol              string       `json:"symbol"`
+	Status              string       `json:"status"`
+	BaseAsset           string       `json:"baseAsset"`
+	BaseAssetPrecision  int          `json:"baseAssetPrecision"`
+	QuoteAsset          string       `json:"quoteAsset"`
+	QuotePrecision      int          `json:"quotePrecision"`
+	QuoteAssetPrecision int          `json:"quoteAssetPrecision"`
+	Filters             []FilterInfo `json:"filters"`
+}
+
+type ExchangeInfo struct {
+	RateLimits []RateLimit  `json:"rateLimits"`
+	Symbols    []SymbolInfo `json:"symbols"`
+}
+
+func (s *StrategyClient) GetExchangeInfo() error {
+	req, err := http.NewRequest(http.MethodGet, s.endpoint+"/api/v1/exchangeInfo", nil)
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+	resp, err := s.client.Do(req)
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		logger.Error("err:", string(body))
+	}
+
+	//logger.Info(string(body))
+
+	ei := ExchangeInfo{}
+	if err := json.Unmarshal(body, &ei); err != nil {
+		logger.Error(err)
+		return err
+	}
+
+	logger.Info(ei.RateLimits)
+	logger.Info(len(ei.Symbols))
+
+	for i := 0; i < 20; i++ {
+		logger.Info(ei.Symbols[i])
+	}
+
+	return nil
+}
+
+func (s *StrategyClient) Depth() error {
+	req, err := http.NewRequest(http.MethodGet, s.endpoint+"/api/v1/depth?symbol=ETHBTC&limit=100", nil)
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+	resp, err := s.client.Do(req)
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		logger.Error("err:", string(body))
+	}
+
+	logger.Info(string(body))
+
 	return nil
 }
 
 func do1() {
-	sc, _ := NewStrategyClient(BaseEndpoint3)
-	logger.Info(sc.Ping())
+	sc, _ := NewStrategyClient(BaseEndpoint)
+	sc.Ping()
+	sc.Time()
+	sc.GetExchangeInfo()
+	sc.Depth()
 }
 
 func main() {
