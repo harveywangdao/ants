@@ -95,30 +95,12 @@ func (s *StrategyClient) Ping() error {
 }
 
 func (s *StrategyClient) Time() error {
-	req, err := http.NewRequest(http.MethodGet, s.endpoint+"/api/v1/time", nil)
+	body, err := s.GET("/api/v1/time")
 	if err != nil {
 		logger.Error(err)
 		return err
 	}
-	resp, err := s.client.Do(req)
-	if err != nil {
-		logger.Error(err)
-		return err
-	}
-	defer resp.Body.Close()
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		logger.Error(err)
-		return err
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		logger.Error("err:", string(body))
-	}
-
 	logger.Info(string(body))
-
 	return nil
 }
 
@@ -153,29 +135,11 @@ type ExchangeInfo struct {
 }
 
 func (s *StrategyClient) GetExchangeInfo() error {
-	req, err := http.NewRequest(http.MethodGet, s.endpoint+"/api/v1/exchangeInfo", nil)
+	body, err := s.GET("/api/v1/exchangeInfo")
 	if err != nil {
 		logger.Error(err)
 		return err
 	}
-	resp, err := s.client.Do(req)
-	if err != nil {
-		logger.Error(err)
-		return err
-	}
-	defer resp.Body.Close()
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		logger.Error(err)
-		return err
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		logger.Error("err:", string(body))
-	}
-
-	//logger.Info(string(body))
 
 	ei := ExchangeInfo{}
 	if err := json.Unmarshal(body, &ei); err != nil {
@@ -201,30 +165,12 @@ func (s *StrategyClient) GetExchangeInfo() error {
 }
 
 func (s *StrategyClient) Depth() error {
-	req, err := http.NewRequest(http.MethodGet, s.endpoint+"/api/v1/depth?symbol=ETHBTC&limit=10", nil)
+	body, err := s.GET("/api/v1/depth?symbol=ETHBTC&limit=10")
 	if err != nil {
 		logger.Error(err)
 		return err
 	}
-	resp, err := s.client.Do(req)
-	if err != nil {
-		logger.Error(err)
-		return err
-	}
-	defer resp.Body.Close()
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		logger.Error(err)
-		return err
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		logger.Error("err:", string(body))
-	}
-
 	logger.Info(string(body))
-
 	return nil
 }
 
@@ -234,9 +180,7 @@ func (s *StrategyClient) QueryTrades() error {
 		logger.Error(err)
 		return err
 	}
-
 	logger.Info(string(data))
-
 	return nil
 }
 
@@ -293,13 +237,12 @@ func do1() {
 	}
 
 	sc.Ping()
-	//sc.Time()
-	//sc.GetExchangeInfo()
-	//sc.Depth()
-	//sc.QueryTrades()
-	//sc.Klines()
-	//sc.AvgPrice()
-	select {}
+	sc.Time()
+	sc.GetExchangeInfo()
+	sc.Depth()
+	sc.QueryTrades()
+	sc.Klines()
+	sc.AvgPrice()
 }
 
 func main() {
