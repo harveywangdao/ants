@@ -1,15 +1,23 @@
 package main
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"time"
 	//"strings"
 
 	"github.com/harveywangdao/ants/logger"
 )
+
+func init() {
+	logger.SetHandlers(logger.Console)
+	logger.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
+	logger.SetLevel(logger.INFO)
+}
 
 const (
 	BaseEndpoint  = "https://api.binance.com"
@@ -32,9 +40,17 @@ type StrategyClient struct {
 }
 
 func NewStrategyClient(endpoint string) (*StrategyClient, error) {
+	transport := &http.Transport{
+		TLSClientConfig: &tls.Config{
+			InsecureSkipVerify: true,
+		},
+	}
+
 	sc := &StrategyClient{
 		endpoint: endpoint,
-		client:   &http.Client{},
+		client: &http.Client{
+			Transport: transport,
+		},
 
 		apikey:    "xx",
 		secretkey: "xx",
@@ -42,31 +58,39 @@ func NewStrategyClient(endpoint string) (*StrategyClient, error) {
 	return sc, nil
 }
 
-func (s *StrategyClient) Ping() error {
-	req, err := http.NewRequest(http.MethodGet, s.endpoint+"/api/v1/ping", nil)
+func (s *StrategyClient) GET(url string) ([]byte, error) {
+	req, err := http.NewRequest(http.MethodGet, s.endpoint+url, nil)
 	if err != nil {
 		logger.Error(err)
-		return err
+		return nil, err
 	}
 	resp, err := s.client.Do(req)
 	if err != nil {
 		logger.Error(err)
-		return err
+		return nil, err
 	}
 	defer resp.Body.Close()
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		logger.Error(err)
-		return err
+		return nil, err
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		logger.Error("ping fail, err:", string(body))
+		return nil, fmt.Errorf("http get fail, code: %d, err: %s", resp.StatusCode, string(body))
 	}
 
-	logger.Info(string(body))
+	return body, nil
+}
 
+func (s *StrategyClient) Ping() error {
+	body, err := s.GET("/api/v1/ping")
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+	logger.Info(string(body))
 	return nil
 }
 
@@ -204,32 +228,6 @@ func (s *StrategyClient) Depth() error {
 	return nil
 }
 
-func (s *StrategyClient) GET(url string) ([]byte, error) {
-	req, err := http.NewRequest(http.MethodGet, s.endpoint+url, nil)
-	if err != nil {
-		logger.Error(err)
-		return nil, err
-	}
-	resp, err := s.client.Do(req)
-	if err != nil {
-		logger.Error(err)
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		logger.Error(err)
-		return nil, err
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("http get fail, code: %d, err: %s", resp.StatusCode, string(body))
-	}
-
-	return body, nil
-}
-
 func (s *StrategyClient) QueryTrades() error {
 	data, err := s.GET("/api/v1/trades?symbol=BTCUSDT&limit=20")
 	if err != nil {
@@ -288,14 +286,20 @@ func (s *StrategyClient) AvgPrice() error {
 }
 
 func do1() {
-	sc, _ := NewStrategyClient(BaseEndpoint)
-	//sc.Ping()
-	sc.Time()
+	sc, err := NewStrategyClient(BaseEndpoint)
+	if err != nil {
+		logger.Fatal(err)
+		return
+	}
+
+	sc.Ping()
+	//sc.Time()
 	//sc.GetExchangeInfo()
 	//sc.Depth()
 	//sc.QueryTrades()
-	sc.Klines()
-	sc.AvgPrice()
+	//sc.Klines()
+	//sc.AvgPrice()
+	select {}
 }
 
 func main() {
