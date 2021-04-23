@@ -2,8 +2,11 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
+	"time"
+	//"strings"
 
 	"github.com/harveywangdao/ants/logger"
 )
@@ -156,18 +159,25 @@ func (s *StrategyClient) GetExchangeInfo() error {
 		return err
 	}
 
-	logger.Info(ei.RateLimits)
-	logger.Info(len(ei.Symbols))
-
-	for i := 0; i < 20; i++ {
-		logger.Info(ei.Symbols[i])
+	/*
+	  BTCUSDT
+	  ETHUSDT
+	  BNBUSDT
+	  LTCUSDT
+	  EOSUSDT
+	  ETCUSDT
+	*/
+	for i := 0; i < len(ei.Symbols); i++ {
+		if ei.Symbols[i].Symbol == "BTCUSDT" {
+			logger.Info(ei.Symbols[i])
+		}
 	}
 
 	return nil
 }
 
 func (s *StrategyClient) Depth() error {
-	req, err := http.NewRequest(http.MethodGet, s.endpoint+"/api/v1/depth?symbol=ETHBTC&limit=100", nil)
+	req, err := http.NewRequest(http.MethodGet, s.endpoint+"/api/v1/depth?symbol=ETHBTC&limit=10", nil)
 	if err != nil {
 		logger.Error(err)
 		return err
@@ -194,12 +204,98 @@ func (s *StrategyClient) Depth() error {
 	return nil
 }
 
+func (s *StrategyClient) GET(url string) ([]byte, error) {
+	req, err := http.NewRequest(http.MethodGet, s.endpoint+url, nil)
+	if err != nil {
+		logger.Error(err)
+		return nil, err
+	}
+	resp, err := s.client.Do(req)
+	if err != nil {
+		logger.Error(err)
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		logger.Error(err)
+		return nil, err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("http get fail, code: %d, err: %s", resp.StatusCode, string(body))
+	}
+
+	return body, nil
+}
+
+func (s *StrategyClient) QueryTrades() error {
+	data, err := s.GET("/api/v1/trades?symbol=BTCUSDT&limit=20")
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+
+	logger.Info(string(data))
+
+	return nil
+}
+
+func (s *StrategyClient) Klines() error {
+	now := time.Now().Unix()
+	startTime := (now - 60*100) * 1000
+	endTime := now * 1000
+
+	/*
+	 * 1m
+	 * 3m
+	 * 5m
+	 * 15m
+	 * 30m
+	 * 1h
+	 * 2h
+	 * 4h
+	 * 6h
+	 * 8h
+	 * 12h
+	 * 1d
+	 * 3d
+	 * 1w
+	 * 1M
+	 */
+	data, err := s.GET(fmt.Sprintf("/api/v1/klines?symbol=%s&interval=%s&startTime=%d&endTime=%d&limit=%d", "BTCUSDT", "1m", startTime, endTime, 20))
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+
+	logger.Info(string(data))
+
+	return nil
+}
+
+func (s *StrategyClient) AvgPrice() error {
+	data, err := s.GET(fmt.Sprintf("/api/v3/avgPrice?symbol=%s", "BTCUSDT"))
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+
+	logger.Info(string(data))
+
+	return nil
+}
+
 func do1() {
 	sc, _ := NewStrategyClient(BaseEndpoint)
-	sc.Ping()
+	//sc.Ping()
 	sc.Time()
-	sc.GetExchangeInfo()
-	sc.Depth()
+	//sc.GetExchangeInfo()
+	//sc.Depth()
+	//sc.QueryTrades()
+	sc.Klines()
+	sc.AvgPrice()
 }
 
 func main() {
