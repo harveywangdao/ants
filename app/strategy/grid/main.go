@@ -111,9 +111,9 @@ func (s *GridStrategy) UpdateGrid(ob *crex.OrderBook) {
 		var order *crex.Order
 		var err error
 		if s.Direction == 1 {
-			order, err = s.Exchange.CloseShort(s.Symbol, crex.OrderTypeMarket, 0, s.GridPointAmount)
+			order, err = s.Exchange.OpenShort(s.Symbol, crex.OrderTypeMarket, 0, s.GridPointAmount)
 		} else {
-			order, err = s.Exchange.CloseLong(s.Symbol, crex.OrderTypeMarket, 0, s.GridPointAmount)
+			order, err = s.Exchange.OpenLong(s.Symbol, crex.OrderTypeMarket, 0, s.GridPointAmount)
 		}
 		if err != nil {
 			logger.Error(err)
