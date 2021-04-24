@@ -7,8 +7,8 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"strings"
 	"time"
-	//"strings"
 
 	"github.com/harveywangdao/ants/logger"
 )
@@ -163,7 +163,7 @@ func (s *StrategyClient) GetExchangeInfo() error {
 	  ETCUSDT
 	*/
 	for i := 0; i < len(ei.Symbols); i++ {
-		if ei.Symbols[i].Symbol == "BTCUSDT" {
+		if strings.Contains(ei.Symbols[i].Symbol, "BTC") {
 			logger.Info(ei.Symbols[i])
 		}
 	}
