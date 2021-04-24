@@ -4,8 +4,8 @@ import (
 	"log"
 	"time"
 
-	"github.com/coinrust/crex"
-	"github.com/coinrust/crex/serve"
+	"github.com/harveywangdao/ants/app/strategy/grid/crex"
+	"github.com/harveywangdao/ants/app/strategy/grid/crex/serve"
 	"github.com/harveywangdao/ants/logger"
 )
 
