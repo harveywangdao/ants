@@ -1,16 +1,18 @@
 [[exchange]]
-name = "bybit"
-access_key = ""
-secret_key = ""
-testnet = true
+name = "binancefutures"
+access_key = "UE52gPqlyFk5Veaz5r7noCY0iuyuBPV8cRVrYGddQGjPEZ0XcLy3Tnp0BJdBFo0t"
+secret_key = "9bLIwDfsicq6HlYvIEgRtlhhPIxob8kbkRJWFay3XECoYAS6ZXF0HJUZCTaOrSNh"
+testnet = false
 websocket = false
+debug_mode = false
+passphrase = ""
 
 [log]
 path = "./app.log"
 level = "debug"
 
 [option]
-symbol = "BTCUSD"
+symbol = "BTCUSDT"
 direction = 1              # 方向: 1(UP) -1(Down)
 grid_num = 10              # 网格节点数量 10
 grid_point_amount = 1.0    # 网格节点下单量 1

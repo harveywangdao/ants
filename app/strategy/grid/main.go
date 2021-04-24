@@ -4,7 +4,7 @@ import (
 	"log"
 	"time"
 
-	. "github.com/coinrust/crex"
+	"github.com/coinrust/crex"
 	"github.com/coinrust/crex/serve"
 	"github.com/harveywangdao/ants/logger"
 )
@@ -47,7 +47,7 @@ func GridShift(grid *[]Level) *Level {
 }
 
 type GridStrategy struct {
-	StrategyBase
+	crex.StrategyBase
 
 	Grid []Level
 
@@ -76,15 +76,16 @@ func (s *GridStrategy) OnInit() error {
 func (s *GridStrategy) OnTick() error {
 	ob, err := s.Exchange.GetOrderBook(s.Symbol, 1)
 	if err != nil {
-		logger.Infof("%v", err)
+		logger.Error(err)
 		return err
 	}
 	s.UpdateGrid(ob)
 	return nil
 }
 
-func (s *GridStrategy) UpdateGrid(ob *OrderBook) {
+func (s *GridStrategy) UpdateGrid(ob *crex.OrderBook) {
 	nowAskPrice, nowBidPrice := ob.AskPrice(), ob.BidPrice()
+	logger.Info("nowAskPrice=%v, nowBidPrice=%v", nowAskPrice, nowBidPrice)
 	if len(s.Grid) == 0 ||
 		(s.Direction == 1 && nowBidPrice-s.Grid[len(s.Grid)-1].Price > s.GridCovDis) ||
 		(s.Direction == -1 && s.Grid[len(s.Grid)-1].Price-nowAskPrice > s.GridCovDis) {
@@ -107,12 +108,12 @@ func (s *GridStrategy) UpdateGrid(ob *OrderBook) {
 			CoverPrice: coverPrice,
 		})
 
-		var order *Order
+		var order *crex.Order
 		var err error
 		if s.Direction == 1 {
-			order, err = s.Exchange.OpenShort(s.Symbol, OrderTypeMarket, 0, s.GridPointAmount)
+			order, err = s.Exchange.OpenShort(s.Symbol, crex.OrderTypeMarket, 0, s.GridPointAmount)
 		} else {
-			order, err = s.Exchange.OpenLong(s.Symbol, OrderTypeMarket, 0, s.GridPointAmount)
+			order, err = s.Exchange.OpenLong(s.Symbol, crex.OrderTypeMarket, 0, s.GridPointAmount)
 		}
 		if err != nil {
 			logger.Infof("%v", err)
@@ -128,13 +129,13 @@ func (s *GridStrategy) UpdateGrid(ob *OrderBook) {
 	if len(s.Grid) > 0 &&
 		((s.Direction == 1 && nowAskPrice < s.Grid[len(s.Grid)-1].CoverPrice) ||
 			(s.Direction == -1 && nowBidPrice > s.Grid[len(s.Grid)-1].CoverPrice)) {
-		var order *Order
+		var order *crex.Order
 		var err error
 		size := s.Grid[len(s.Grid)-1].HoldAmount
 		if s.Direction == 1 {
-			order, err = s.Exchange.OpenLong(s.Symbol, OrderTypeMarket, 0, size)
+			order, err = s.Exchange.OpenLong(s.Symbol, crex.OrderTypeMarket, 0, size)
 		} else {
-			order, err = s.Exchange.OpenShort(s.Symbol, OrderTypeMarket, 0, size)
+			order, err = s.Exchange.OpenShort(s.Symbol, crex.OrderTypeMarket, 0, size)
 		}
 		if err != nil {
 			logger.Infof("%v", err)
@@ -144,13 +145,13 @@ func (s *GridStrategy) UpdateGrid(ob *OrderBook) {
 		GridPop(&s.Grid)
 		s.StopWin++
 	} else if len(s.Grid) > s.GridNum {
-		var order *Order
+		var order *crex.Order
 		var err error
 		size := s.Grid[0].HoldAmount
 		if s.Direction == 1 {
-			order, err = s.Exchange.OpenLong(s.Symbol, OrderTypeMarket, 0, size)
+			order, err = s.Exchange.OpenLong(s.Symbol, crex.OrderTypeMarket, 0, size)
 		} else {
-			order, err = s.Exchange.OpenShort(s.Symbol, OrderTypeMarket, 0, size)
+			order, err = s.Exchange.OpenShort(s.Symbol, crex.OrderTypeMarket, 0, size)
 		}
 		if err != nil {
 			logger.Infof("%v", err)
@@ -163,7 +164,6 @@ func (s *GridStrategy) UpdateGrid(ob *OrderBook) {
 }
 
 func (s *GridStrategy) Run() error {
-	// run loop
 	for {
 		s.OnTick()
 		time.Sleep(500 * time.Millisecond)
@@ -176,9 +176,9 @@ func (s *GridStrategy) OnExit() error {
 }
 
 func main() {
-	s := &GridStrategy{}
-	err := serve.Serve(s)
-	if err != nil {
-		logger.Errorf("%v", err)
+	logger.Info("grid strategy start")
+	grid := &GridStrategy{}
+	if err := serve.Serve(grid); err != nil {
+		logger.Error(err)
 	}
 }
