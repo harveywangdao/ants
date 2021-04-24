@@ -85,7 +85,7 @@ func (s *GridStrategy) OnTick() error {
 
 func (s *GridStrategy) UpdateGrid(ob *crex.OrderBook) {
 	nowAskPrice, nowBidPrice := ob.AskPrice(), ob.BidPrice()
-	logger.Info("nowAskPrice=%v, nowBidPrice=%v", nowAskPrice, nowBidPrice)
+	logger.Infof("nowAskPrice=%v, nowBidPrice=%v", nowAskPrice, nowBidPrice)
 	if len(s.Grid) == 0 ||
 		(s.Direction == 1 && nowBidPrice-s.Grid[len(s.Grid)-1].Price > s.GridCovDis) ||
 		(s.Direction == -1 && s.Grid[len(s.Grid)-1].Price-nowAskPrice > s.GridCovDis) {

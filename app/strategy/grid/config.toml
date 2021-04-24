@@ -12,9 +12,9 @@ path = "./app.log"
 level = "debug"
 
 [option]
-symbol = "BTCUSDT"
+symbol = "DOGEUSDT"
 direction = 1              # 方向: 1(UP) -1(Down)
 grid_num = 10              # 网格节点数量 10
 grid_point_amount = 1.0    # 网格节点下单量 1
-grid_point_dis = 20.0      # 网格节点间距 20
-grid_cov_dis = 50.0        # 网格节点平仓价差 50
+grid_point_dis = 0.02      # 网格节点间距 20
+grid_cov_dis = 0.05        # 网格节点平仓价差 50
