@@ -187,6 +187,16 @@ func (s *StrategyClient) Klines() error {
 	return nil
 }
 
+func (s *StrategyClient) Price() error {
+	data, err := s.GET("/fapi/v1/ticker/price?symbol=BTCUSDT")
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+	logger.Info(string(data))
+	return nil
+}
+
 func do1() {
 	sc, err := NewStrategyClient(BaseEndpoint, "", "")
 	if err != nil {
@@ -200,6 +210,7 @@ func do1() {
 	sc.Depth()
 	sc.QueryTrades()
 	sc.Klines()
+	sc.Price()
 }
 
 func main() {
