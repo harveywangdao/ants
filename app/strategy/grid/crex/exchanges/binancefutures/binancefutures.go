@@ -211,6 +211,8 @@ func (b *BinanceFutures) PlaceOrder(symbol string, direction Direction, orderTyp
 		service = service.TimeInForce(resolveTimeInForce(params.TimeInForce))
 	}
 
+	service.PositionSide("LONG")
+
 	if params.PostOnly {
 		service = service.TimeInForce(futures.TimeInForceTypeGTX)
 	}
