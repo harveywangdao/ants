@@ -1,7 +1,7 @@
 [[exchange]]
 name = "binancefutures"
-access_key = "UE52gPqlyFk5Veaz5r7noCY0iuyuBPV8cRVrYGddQGjPEZ0XcLy3Tnp0BJdBFo0t"
-secret_key = "9bLIwDfsicq6HlYvIEgRtlhhPIxob8kbkRJWFay3XECoYAS6ZXF0HJUZCTaOrSNh"
+access_key = "KtnHyOpZzRgetPtTlxkdkCck1DlVumUvBUCEtSmAzxItVdXKigsugS11rteCRYLh"
+secret_key = "TLo3hxjoGCVHBCyq6GUOA7QyoWCrV35VUOZaybVlVPfsHpJy6T2AkjlnH8mdFlJr"
 testnet = false
 websocket = false
 debug_mode = false
@@ -15,6 +15,6 @@ level = "debug"
 symbol = "DOGEUSDT"
 direction = 1              # 方向: 1(UP) -1(Down)
 grid_num = 10              # 网格节点数量 10
-grid_point_amount = 1.0    # 网格节点下单量 1
-grid_point_dis = 0.02      # 网格节点间距 20
-grid_cov_dis = 0.05        # 网格节点平仓价差 50
+grid_point_amount = 20.0   # 网格节点下单量 1
+grid_point_dis = 0.0002    # 网格节点间距 20
+grid_cov_dis = 0.0005      # 网格节点平仓价差 50
