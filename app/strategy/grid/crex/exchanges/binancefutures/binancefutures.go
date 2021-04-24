@@ -182,8 +182,7 @@ func (b *BinanceFutures) PlaceOrder(symbol string, direction Direction, orderTyp
 	params := ParsePlaceOrderParameter(opts...)
 	service := b.client.NewCreateOrderService().
 		Symbol(symbol).
-		Quantity(fmt.Sprint(size)).
-		ReduceOnly(params.ReduceOnly)
+		Quantity(fmt.Sprint(size))
 	var side futures.SideType
 	if direction == Buy {
 		side = futures.SideTypeBuy
@@ -224,6 +223,7 @@ func (b *BinanceFutures) PlaceOrder(symbol string, direction Direction, orderTyp
 		return
 	}
 	result = b.convertOrder1(res)
+        fmt.Printf("%+v\n", *res)
 	return
 }
 
