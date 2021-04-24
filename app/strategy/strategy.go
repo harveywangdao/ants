@@ -19,6 +19,13 @@ func init() {
 	logger.SetLevel(logger.INFO)
 }
 
+/*
+https://vapi.binance.com 欧式期权 /vapi/v1/ping
+https://dapi.binance.com 币本位合约 /dapi/v1/ping
+https://fapi.binance.com U本位合约 /fapi/v1/ping
+https://api.binance.com 现货/杠杆/币安宝/矿池 /api/v3/ping
+*/
+
 const (
 	BaseEndpoint  = "https://api.binance.com"
 	BaseEndpoint1 = "https://api1.binance.com"
