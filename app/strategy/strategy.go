@@ -1,7 +1,6 @@
 package main
 
 import (
-	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -27,10 +26,7 @@ https://api.binance.com 现货/杠杆/币安宝/矿池 /api/v3/ping
 */
 
 const (
-	BaseEndpoint  = "https://api.binance.com"
-	BaseEndpoint1 = "https://api1.binance.com"
-	BaseEndpoint2 = "https://api2.binance.com"
-	BaseEndpoint3 = "https://api3.binance.com"
+	BaseEndpoint = "https://fapi.binance.com"
 )
 
 type ErrResult struct {
@@ -42,25 +38,16 @@ type StrategyClient struct {
 	endpoint string
 	client   *http.Client
 
-	apikey    string
-	secretkey string
+	apiKey    string
+	secretKey string
 }
 
-func NewStrategyClient(endpoint string) (*StrategyClient, error) {
-	transport := &http.Transport{
-		TLSClientConfig: &tls.Config{
-			InsecureSkipVerify: true,
-		},
-	}
-
+func NewStrategyClient(endpoint, apiKey, secretKey string) (*StrategyClient, error) {
 	sc := &StrategyClient{
-		endpoint: endpoint,
-		client: &http.Client{
-			Transport: transport,
-		},
-
-		apikey:    "xx",
-		secretkey: "xx",
+		endpoint:  endpoint,
+		client:    &http.Client{},
+		apiKey:    apiKey,
+		secretKey: secretKey,
 	}
 	return sc, nil
 }
@@ -92,7 +79,7 @@ func (s *StrategyClient) GET(url string) ([]byte, error) {
 }
 
 func (s *StrategyClient) Ping() error {
-	body, err := s.GET("/api/v1/ping")
+	body, err := s.GET("/fapi/v1/ping")
 	if err != nil {
 		logger.Error(err)
 		return err
@@ -102,7 +89,7 @@ func (s *StrategyClient) Ping() error {
 }
 
 func (s *StrategyClient) Time() error {
-	body, err := s.GET("/api/v1/time")
+	body, err := s.GET("/fapi/v1/time")
 	if err != nil {
 		logger.Error(err)
 		return err
@@ -142,7 +129,7 @@ type ExchangeInfo struct {
 }
 
 func (s *StrategyClient) GetExchangeInfo() error {
-	body, err := s.GET("/api/v1/exchangeInfo")
+	body, err := s.GET("/fapi/v1/exchangeInfo")
 	if err != nil {
 		logger.Error(err)
 		return err
@@ -154,14 +141,7 @@ func (s *StrategyClient) GetExchangeInfo() error {
 		return err
 	}
 
-	/*
-	  BTCUSDT
-	  ETHUSDT
-	  BNBUSDT
-	  LTCUSDT
-	  EOSUSDT
-	  ETCUSDT
-	*/
+	// BTCUSDT ETHUSDT BNBUSDT LTCUSDT EOSUSDT ETCUSDT
 	for i := 0; i < len(ei.Symbols); i++ {
 		if strings.Contains(ei.Symbols[i].Symbol, "BTC") {
 			logger.Info(ei.Symbols[i])
@@ -172,7 +152,7 @@ func (s *StrategyClient) GetExchangeInfo() error {
 }
 
 func (s *StrategyClient) Depth() error {
-	body, err := s.GET("/api/v1/depth?symbol=ETHBTC&limit=10")
+	body, err := s.GET("/fapi/v1/depth?symbol=BTCUSDT&limit=20")
 	if err != nil {
 		logger.Error(err)
 		return err
@@ -182,7 +162,7 @@ func (s *StrategyClient) Depth() error {
 }
 
 func (s *StrategyClient) QueryTrades() error {
-	data, err := s.GET("/api/v1/trades?symbol=BTCUSDT&limit=20")
+	data, err := s.GET("/fapi/v1/trades?symbol=BTCUSDT&limit=20")
 	if err != nil {
 		logger.Error(err)
 		return err
@@ -196,48 +176,19 @@ func (s *StrategyClient) Klines() error {
 	startTime := (now - 60*100) * 1000
 	endTime := now * 1000
 
-	/*
-	 * 1m
-	 * 3m
-	 * 5m
-	 * 15m
-	 * 30m
-	 * 1h
-	 * 2h
-	 * 4h
-	 * 6h
-	 * 8h
-	 * 12h
-	 * 1d
-	 * 3d
-	 * 1w
-	 * 1M
-	 */
-	data, err := s.GET(fmt.Sprintf("/api/v1/klines?symbol=%s&interval=%s&startTime=%d&endTime=%d&limit=%d", "BTCUSDT", "1m", startTime, endTime, 20))
+	// 1m 3m 5m 15m 30m 1h 2h 4h 6h 8h 12h 1d 3d 1w 1M
+	data, err := s.GET(fmt.Sprintf("/fapi/v1/klines?symbol=%s&interval=%s&startTime=%d&endTime=%d&limit=%d", "BTCUSDT", "1m", startTime, endTime, 20))
 	if err != nil {
 		logger.Error(err)
 		return err
 	}
-
-	logger.Info(string(data))
-
-	return nil
-}
-
-func (s *StrategyClient) AvgPrice() error {
-	data, err := s.GET(fmt.Sprintf("/api/v3/avgPrice?symbol=%s", "BTCUSDT"))
-	if err != nil {
-		logger.Error(err)
-		return err
-	}
-
 	logger.Info(string(data))
 
 	return nil
 }
 
 func do1() {
-	sc, err := NewStrategyClient(BaseEndpoint)
+	sc, err := NewStrategyClient(BaseEndpoint, "", "")
 	if err != nil {
 		logger.Fatal(err)
 		return
@@ -249,7 +200,6 @@ func do1() {
 	sc.Depth()
 	sc.QueryTrades()
 	sc.Klines()
-	sc.AvgPrice()
 }
 
 func main() {
