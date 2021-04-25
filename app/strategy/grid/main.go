@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"encoding/json"
+	//"encoding/json"
 	"fmt"
 	"log"
 	"time"
@@ -72,16 +72,21 @@ func (g *GridStrategy) OnTick() error {
 		logger.Error(err)
 		return err
 	}
-	data, _ := json.Marshal(balances)
-	logger.Info("balances:", string(data))
+	// data, _ := json.Marshal(balances)
+	// logger.Info("balances:", string(data))
+	for i := 0; i < len(balances); i++ {
+		if balances[i].Asset == "USDT" {
+			logger.Infof("%#v", balances[i])
+		}
+	}
 
 	account, err := g.client.NewGetAccountService().Do(context.Background())
 	if err != nil {
 		logger.Error(err)
 		return err
 	}
-	//data, _ = json.Marshal(account)
-	//logger.Info("account:", string(data))
+	// data, _ = json.Marshal(account)
+	// logger.Info("account:", string(data))
 
 	for i := 0; i < len(account.Assets); i++ {
 		if account.Assets[i].Asset == "USDT" {
