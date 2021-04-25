@@ -65,6 +65,20 @@ func (g *GridStrategy) OnTick() error {
 	nowAskPrice, nowBidPrice := res.Asks[0], res.Bids[0]
 	logger.Infof("nowAskPrice=%v, nowBidPrice=%v", nowAskPrice, nowBidPrice)
 
+	balanceResp, err := g.client.NewGetBalanceService().Do(context.Background())
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+	logger.Infof("balance=%#v", balanceResp)
+
+	accountResp, err := g.client.NewGetAccountService().Do(context.Background())
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+	logger.Infof("account=%#v", accountResp)
+
 	g.Trade(futures.SideTypeSell, 0, g.GridPointAmount)
 	time.Sleep(time.Second * 5)
 	g.Trade(futures.SideTypeBuy, 0, g.GridPointAmount)
