@@ -63,12 +63,39 @@ func (g *GridStrategy) OnTick() error {
 	logger.Info("depth asks:", res.Asks)
 	logger.Info("depth bids:", res.Bids)
 
-	nowAskPrice, nowBidPrice := res.Asks[0], res.Bids[0]
+	nowAskPrice, err := strconv.ParseFloat(res.Asks[0].Price, 64)
+	if err != nil {
+		logger.Error("nowAskPrice parse float64 fail, err", err)
+		return err
+	}
+	nowBidPrice, err := strconv.ParseFloat(res.Bids[0].Price, 64)
+	if err != nil {
+		logger.Error("nowBidPrice parse float64 fail, err", err)
+		return err
+	}
 	logger.Infof("nowAskPrice=%v, nowBidPrice=%v", nowAskPrice, nowBidPrice)
 
 	g.GetBalance("USDT")
-	g.Account()
-	return nil
+	position, err := g.Position()
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+	entryPrice, err := strconv.ParseFloat(position.EntryPrice, 64)
+	if err != nil {
+		logger.Error("entryPrice parse float64 fail, err", err)
+		return err
+	}
+	/*positionAmt, err := strconv.ParseFloat(position.PositionAmt, 64)
+	if err != nil {
+		logger.Error("positionAmt parse float64 fail, err", err)
+		return err
+	}*/
+
+	if entryPrice > nowAskPrice && (entryPrice-nowAskPrice)/entryPrice > 0.3 {
+		g.Trade(futures.SideTypeSell, 0, 10000*g.GridPointAmount)
+		return nil
+	}
 
 	amount := g.sky()
 	if amount > 0 {
@@ -169,11 +196,11 @@ func (g *GridStrategy) GetBalance(asset string) float64 {
 	return 0.0
 }
 
-func (g *GridStrategy) Account() error {
+func (g *GridStrategy) Position() (*futures.AccountPosition, error) {
 	account, err := g.client.NewGetAccountService().Do(context.Background())
 	if err != nil {
 		logger.Error(err)
-		return err
+		return nil, err
 	}
 
 	// {Asset:"USDT", InitialMargin:"2.73550490", MaintMargin:"0.27355049", MarginBalance:"6.26307065", MaxWithdrawAmount:"3.52756575", OpenOrderInitialMargin:"0.00000000", PositionInitialMargin:"2.73550490", UnrealizedProfit:"0.02344900", WalletBalance:"6.23962165"}
@@ -187,9 +214,10 @@ func (g *GridStrategy) Account() error {
 	for i := 0; i < len(account.Positions); i++ {
 		if account.Positions[i].Symbol == g.Symbol && account.Positions[i].PositionSide == futures.PositionSideType(g.PositionSide) {
 			logger.Infof("%s: %#v", g.Symbol, account.Positions[i])
+			return account.Positions[i], nil
 		}
 	}
-	return nil
+	return nil, fmt.Errorf("not existed")
 }
 
 func (g *GridStrategy) Run() error {
