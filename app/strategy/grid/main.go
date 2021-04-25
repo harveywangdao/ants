@@ -66,6 +66,7 @@ func (g *GridStrategy) OnTick() error {
 	nowAskPrice, nowBidPrice := res.Asks[0], res.Bids[0]
 	logger.Infof("nowAskPrice=%v, nowBidPrice=%v", nowAskPrice, nowBidPrice)
 
+	g.GetBalance("USDT")
 	g.Account()
 	return nil
 
@@ -174,11 +175,15 @@ func (g *GridStrategy) Account() error {
 		logger.Error(err)
 		return err
 	}
+
+	// {Asset:"USDT", InitialMargin:"2.73550490", MaintMargin:"0.27355049", MarginBalance:"6.26307065", MaxWithdrawAmount:"3.52756575", OpenOrderInitialMargin:"0.00000000", PositionInitialMargin:"2.73550490", UnrealizedProfit:"0.02344900", WalletBalance:"6.23962165"}
 	for i := 0; i < len(account.Assets); i++ {
 		if account.Assets[i].Asset == "USDT" {
 			logger.Infof("%#v", account.Assets[i])
 		}
 	}
+
+	// {Isolated:false, Leverage:"10", InitialMargin:"2.73550490", MaintMargin:"0.27355049", OpenOrderInitialMargin:"0", PositionInitialMargin:"2.73550490", Symbol:"DOGEUSDT", UnrealizedProfit:"0.02344900", EntryPrice:"0.273316", MaxNotional:"100000", PositionSide:"LONG", PositionAmt:"100"}
 	for i := 0; i < len(account.Positions); i++ {
 		if account.Positions[i].Symbol == g.Symbol && account.Positions[i].PositionSide == futures.PositionSideType(g.PositionSide) {
 			logger.Infof("%s: %#v", g.Symbol, account.Positions[i])
@@ -188,9 +193,14 @@ func (g *GridStrategy) Account() error {
 }
 
 func (g *GridStrategy) Run() error {
+	tk := time.NewTicker(60 * time.Second)
+	defer tk.Stop()
+
 	for {
-		g.OnTick()
-		time.Sleep(60 * time.Second)
+		select {
+		case <-tk.C:
+			g.OnTick()
+		}
 	}
 	return nil
 }
