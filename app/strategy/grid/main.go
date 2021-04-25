@@ -164,6 +164,23 @@ func (s *GridStrategy) UpdateGrid(ob *crex.OrderBook) {
 }
 
 func (s *GridStrategy) Run() error {
+	order, err := s.Exchange.OpenShort(s.Symbol, crex.OrderTypeMarket, 0, 50)
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+	logger.Infof("%+v", *order)
+
+	time.Sleep(time.Second * 5)
+
+	order, err = s.Exchange.OpenLong(s.Symbol, crex.OrderTypeMarket, 0, 50)
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+	logger.Infof("%+v", *order)
+	return nil
+
 	for {
 		s.OnTick()
 		time.Sleep(500 * time.Millisecond)
