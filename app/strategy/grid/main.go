@@ -2,9 +2,9 @@ package main
 
 import (
 	"context"
-	//"encoding/json"
 	"fmt"
 	"log"
+	"strconv"
 	"time"
 
 	"github.com/adshao/go-binance/v2/futures"
@@ -21,6 +21,7 @@ const (
 	ApiKey    = "KtnHyOpZzRgetPtTlxkdkCck1DlVumUvBUCEtSmAzxItVdXKigsugS11rteCRYLh"
 	SecretKey = "TLo3hxjoGCVHBCyq6GUOA7QyoWCrV35VUOZaybVlVPfsHpJy6T2AkjlnH8mdFlJr"
 
+	PositionSide    = "LONG"
 	Symbol          = "DOGEUSDT"
 	Direction       = 1      // 方向: 1(UP) -1(Down)
 	GridNum         = 10     // 网格节点数量 10
@@ -43,6 +44,7 @@ type GridStrategy struct {
 }
 
 func (g *GridStrategy) OnInit() error {
+	logger.Infof("PositionSide: %v", g.PositionSide)
 	logger.Infof("Symbol: %v", g.Symbol)
 	logger.Infof("Direction: %v", g.Direction)
 	logger.Infof("GridNum: %v", g.GridNum)
@@ -53,10 +55,7 @@ func (g *GridStrategy) OnInit() error {
 }
 
 func (g *GridStrategy) OnTick() error {
-	res, err := g.client.NewDepthService().
-		Symbol(g.Symbol).
-		Limit(5).
-		Do(context.Background())
+	res, err := g.client.NewDepthService().Symbol(g.Symbol).Limit(5).Do(context.Background())
 	if err != nil {
 		logger.Error(err)
 		return err
@@ -67,37 +66,14 @@ func (g *GridStrategy) OnTick() error {
 	nowAskPrice, nowBidPrice := res.Asks[0], res.Bids[0]
 	logger.Infof("nowAskPrice=%v, nowBidPrice=%v", nowAskPrice, nowBidPrice)
 
-	balances, err := g.client.NewGetBalanceService().Do(context.Background())
+	// 1m 3m 5m 15m 30m 1h 2h 4h 6h 8h 12h 1d 3d 1w 1M
+	klines, err := g.client.NewKlinesService().Symbol(g.Symbol).Interval("1m").Limit(50).Do(context.Background())
 	if err != nil {
 		logger.Error(err)
 		return err
 	}
-	// data, _ := json.Marshal(balances)
-	// logger.Info("balances:", string(data))
-	for i := 0; i < len(balances); i++ {
-		if balances[i].Asset == "USDT" {
-			logger.Infof("%#v", balances[i])
-		}
-	}
-
-	account, err := g.client.NewGetAccountService().Do(context.Background())
-	if err != nil {
-		logger.Error(err)
-		return err
-	}
-	// data, _ = json.Marshal(account)
-	// logger.Info("account:", string(data))
-
-	for i := 0; i < len(account.Assets); i++ {
-		if account.Assets[i].Asset == "USDT" {
-			logger.Infof("%#v", account.Assets[i])
-		}
-	}
-
-	for i := 0; i < len(account.Positions); i++ {
-		if account.Positions[i].Symbol == g.Symbol && account.Positions[i].PositionSide == futures.PositionSideType(g.PositionSide) {
-			logger.Infof("%s: %#v", g.Symbol, account.Positions[i])
-		}
+	for i := 0; i < len(klines); i++ {
+		logger.Info(*klines[i])
 	}
 
 	g.Trade(futures.SideTypeSell, 0, g.GridPointAmount)
@@ -137,6 +113,46 @@ func (g *GridStrategy) Trade(sideType futures.SideType, price, amount float64) (
 	return orderInfo, nil
 }
 
+func (g *GridStrategy) GetBalance(asset string) float64 {
+	balances, err := g.client.NewGetBalanceService().Do(context.Background())
+	if err != nil {
+		logger.Error(err)
+		return 0.0
+	}
+	for i := 0; i < len(balances); i++ {
+		if balances[i].Asset == asset {
+			logger.Infof("%#v", balances[i])
+			availableBalance, err := strconv.ParseFloat(balances[i].AvailableBalance, 64)
+			if err != nil {
+				logger.Error("availableBalance parse float64 fail, err", err)
+				return 0.0
+			}
+			logger.Info("availableBalance:", availableBalance)
+			return availableBalance
+		}
+	}
+	return 0.0
+}
+
+func (g *GridStrategy) Account() error {
+	account, err := g.client.NewGetAccountService().Do(context.Background())
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+	for i := 0; i < len(account.Assets); i++ {
+		if account.Assets[i].Asset == "USDT" {
+			logger.Infof("%#v", account.Assets[i])
+		}
+	}
+	for i := 0; i < len(account.Positions); i++ {
+		if account.Positions[i].Symbol == g.Symbol && account.Positions[i].PositionSide == futures.PositionSideType(g.PositionSide) {
+			logger.Infof("%s: %#v", g.Symbol, account.Positions[i])
+		}
+	}
+	return nil
+}
+
 func (g *GridStrategy) Run() error {
 	for {
 		g.OnTick()
@@ -151,7 +167,7 @@ func main() {
 	grid := &GridStrategy{
 		client: futures.NewClient(ApiKey, SecretKey),
 
-		PositionSide:    "LONG",
+		PositionSide:    PositionSide,
 		Symbol:          Symbol,
 		Direction:       Direction,
 		GridNum:         GridNum,
