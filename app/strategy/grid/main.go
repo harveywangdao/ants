@@ -84,7 +84,9 @@ func (g *GridStrategy) OnTick() error {
 	//logger.Info("account:", string(data))
 
 	for i := 0; i < len(account.Assets); i++ {
-		logger.Infof("%#v", account.Assets[i])
+		if account.Assets[i].Asset == "USDT" {
+			logger.Infof("%#v", account.Assets[i])
+		}
 	}
 
 	for i := 0; i < len(account.Positions); i++ {
