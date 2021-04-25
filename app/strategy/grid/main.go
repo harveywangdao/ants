@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"time"
@@ -65,19 +66,21 @@ func (g *GridStrategy) OnTick() error {
 	nowAskPrice, nowBidPrice := res.Asks[0], res.Bids[0]
 	logger.Infof("nowAskPrice=%v, nowBidPrice=%v", nowAskPrice, nowBidPrice)
 
-	balanceResp, err := g.client.NewGetBalanceService().Do(context.Background())
+	balances, err := g.client.NewGetBalanceService().Do(context.Background())
 	if err != nil {
 		logger.Error(err)
 		return err
 	}
-	logger.Infof("balance=%#v", balanceResp)
+	data, _ := json.Marshal(balances)
+	logger.Info("balances:", string(data))
 
-	accountResp, err := g.client.NewGetAccountService().Do(context.Background())
+	account, err := g.client.NewGetAccountService().Do(context.Background())
 	if err != nil {
 		logger.Error(err)
 		return err
 	}
-	logger.Infof("account=%#v", accountResp)
+	data, _ = json.Marshal(account)
+	logger.Info("account:", string(data))
 
 	g.Trade(futures.SideTypeSell, 0, g.GridPointAmount)
 	time.Sleep(time.Second * 5)
