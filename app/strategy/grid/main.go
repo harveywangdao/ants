@@ -66,21 +66,52 @@ func (g *GridStrategy) OnTick() error {
 	nowAskPrice, nowBidPrice := res.Asks[0], res.Bids[0]
 	logger.Infof("nowAskPrice=%v, nowBidPrice=%v", nowAskPrice, nowBidPrice)
 
-	// 1m 3m 5m 15m 30m 1h 2h 4h 6h 8h 12h 1d 3d 1w 1M
-	klines, err := g.client.NewKlinesService().Symbol(g.Symbol).Interval("1m").Limit(50).Do(context.Background())
-	if err != nil {
-		logger.Error(err)
-		return err
+	amount := g.sky()
+	if amount > 0 {
+		g.Trade(futures.SideTypeBuy, 0, float64(amount)*g.GridPointAmount)
+	} else if amount < 0 {
+		g.Trade(futures.SideTypeSell, 0, float64(-amount)*g.GridPointAmount)
 	}
-	for i := 0; i < len(klines); i++ {
-		logger.Infof("%+v", *klines[i])
-	}
-
-	g.Trade(futures.SideTypeSell, 0, g.GridPointAmount)
-	time.Sleep(time.Second * 5)
-	g.Trade(futures.SideTypeBuy, 0, g.GridPointAmount)
 
 	return nil
+}
+
+const (
+	BUY  = 1
+	SELL = -1
+	WAIT = 0
+)
+
+var wants []int = []int{BUY * 2, WAIT, WAIT, SELL, BUY, WAIT, SELL * 100, SELL * 2}
+
+func (g *GridStrategy) sky() int {
+	// 1m 3m 5m 15m 30m 1h 2h 4h 6h 8h 12h 1d 3d 1w 1M
+	klines, err := g.client.NewKlinesService().Symbol(g.Symbol).Interval("1m").Limit(3).Do(context.Background())
+	if err != nil {
+		logger.Error(err)
+		return SELL * 100
+	}
+
+	if len(klines) != 3 {
+		logger.Fatal("klines error")
+		return WAIT
+	}
+
+	updowns := make([]int, len(klines))
+	for i := 0; i < len(klines); i++ {
+		logger.Infof("%+v", *klines[i])
+		if klines[i].Close >= klines[i].Open {
+			updowns[i] = 1
+		}
+	}
+
+	threebits := 0
+	for i := 0; i < len(updowns); i++ {
+		threebits <<= 1
+		threebits |= updowns[i]
+	}
+
+	return wants[threebits%8]
 }
 
 /*
