@@ -223,7 +223,7 @@ func (b *BinanceFutures) PlaceOrder(symbol string, direction Direction, orderTyp
 		return
 	}
 	result = b.convertOrder1(res)
-        fmt.Printf("%+v\n", *res)
+	fmt.Printf("%+v\n", *res)
 	return
 }
 
