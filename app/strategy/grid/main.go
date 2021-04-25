@@ -187,7 +187,7 @@ func (g *GridStrategy) Account() error {
 func (g *GridStrategy) Run() error {
 	for {
 		g.OnTick()
-		time.Sleep(2 * time.Second)
+		time.Sleep(60 * time.Second)
 	}
 	return nil
 }
