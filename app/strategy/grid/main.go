@@ -1,11 +1,12 @@
 package main
 
 import (
+	"context"
+	"fmt"
 	"log"
 	"time"
 
-	"github.com/harveywangdao/ants/app/strategy/grid/crex"
-	"github.com/harveywangdao/ants/app/strategy/grid/crex/serve"
+	"github.com/adshao/go-binance/v2/futures"
 	"github.com/harveywangdao/ants/logger"
 )
 
@@ -15,44 +16,20 @@ func init() {
 	logger.SetLevel(logger.INFO)
 }
 
-type Level struct {
-	Price      float64
-	HoldPrice  float64
-	HoldAmount float64
-	CoverPrice float64
-}
+const (
+	ApiKey    = "KtnHyOpZzRgetPtTlxkdkCck1DlVumUvBUCEtSmAzxItVdXKigsugS11rteCRYLh"
+	SecretKey = "TLo3hxjoGCVHBCyq6GUOA7QyoWCrV35VUOZaybVlVPfsHpJy6T2AkjlnH8mdFlJr"
 
-func GridPop(grid *[]Level) *Level {
-	length := len(*grid)
-	if length == 0 {
-		return nil
-	}
-	item := (*grid)[length-1]
-	*grid = (*grid)[:length-1]
-	return &item
-}
-
-func GridShift(grid *[]Level) *Level {
-	length := len(*grid)
-	if length == 0 {
-		return nil
-	}
-	item := (*grid)[0]
-	if length > 1 {
-		*grid = (*grid)[1:length]
-	} else {
-		*grid = []Level{}
-	}
-	return &item
-}
+	Symbol          = "DOGEUSDT"
+	Direction       = 1      // 方向: 1(UP) -1(Down)
+	GridNum         = 10     // 网格节点数量 10
+	GridPointAmount = 20.0   // 网格节点下单量 1
+	GridPointDis    = 0.0002 // 网格节点间距 20
+	GridCovDis      = 0.0005 // 网格节点平仓价差 50
+)
 
 type GridStrategy struct {
-	crex.StrategyBase
-
-	Grid []Level
-
-	StopLoss float64
-	StopWin  float64
+	client *futures.Client
 
 	Symbol    string  `opt:"symbol,BTUSDT"`
 	Direction float64 `opt:"direction,1"` // 网格方向 up 1, down -1
@@ -63,159 +40,89 @@ type GridStrategy struct {
 	GridCovDis      float64 `opt:"grid_cov_dis,50"`     // 网格节点平仓价差 50
 }
 
-func (s *GridStrategy) OnInit() error {
-	logger.Infof("Symbol: %v", s.Symbol)
-	logger.Infof("Direction: %v", s.Direction)
-	logger.Infof("GridNum: %v", s.GridNum)
-	logger.Infof("GridPointAmount: %v", s.GridPointAmount)
-	logger.Infof("GridPointDis: %v", s.GridPointDis)
-	logger.Infof("GridCovDis: %v", s.GridCovDis)
+func (g *GridStrategy) OnInit() error {
+	logger.Infof("Symbol: %v", g.Symbol)
+	logger.Infof("Direction: %v", g.Direction)
+	logger.Infof("GridNum: %v", g.GridNum)
+	logger.Infof("GridPointAmount: %v", g.GridPointAmount)
+	logger.Infof("GridPointDis: %v", g.GridPointDis)
+	logger.Infof("GridCovDis: %v", g.GridCovDis)
 	return nil
 }
 
-func (s *GridStrategy) OnTick() error {
-	ob, err := s.Exchange.GetOrderBook(s.Symbol, 1)
+func (g *GridStrategy) OnTick() error {
+	res, err := g.client.NewDepthService().
+		Symbol(g.Symbol).
+		Limit(5).
+		Do(context.Background())
 	if err != nil {
 		logger.Error(err)
 		return err
 	}
-	s.UpdateGrid(ob)
-	return nil
-}
+	logger.Info("depth asks:", res.Asks)
+	logger.Info("depth bids:", res.Bids)
 
-func (s *GridStrategy) UpdateGrid(ob *crex.OrderBook) {
-	nowAskPrice, nowBidPrice := ob.AskPrice(), ob.BidPrice()
+	nowAskPrice, nowBidPrice := res.Asks[0], res.Bids[0]
 	logger.Infof("nowAskPrice=%v, nowBidPrice=%v", nowAskPrice, nowBidPrice)
-	if len(s.Grid) == 0 ||
-		(s.Direction == 1 && nowBidPrice-s.Grid[len(s.Grid)-1].Price > s.GridCovDis) ||
-		(s.Direction == -1 && s.Grid[len(s.Grid)-1].Price-nowAskPrice > s.GridCovDis) {
 
-		nowPrice := nowAskPrice
-		if s.Direction == 1 {
-			nowPrice = nowBidPrice
-		}
-		price := nowPrice
-		coverPrice := nowPrice - s.Direction*s.GridCovDis
-		if len(s.Grid) > 0 {
-			price = s.Grid[len(s.Grid)-1].Price + s.GridPointDis*s.Direction
-			coverPrice = s.Grid[len(s.Grid)-1].Price + s.GridPointDis*s.Direction*s.GridCovDis
-		}
-
-		s.Grid = append(s.Grid, Level{
-			Price:      price,
-			HoldPrice:  0,
-			HoldAmount: 0,
-			CoverPrice: coverPrice,
-		})
-
-		var order *crex.Order
-		var err error
-		if s.Direction == 1 {
-			order, err = s.Exchange.OpenShort(s.Symbol, crex.OrderTypeMarket, 0, s.GridPointAmount)
-		} else {
-			order, err = s.Exchange.OpenLong(s.Symbol, crex.OrderTypeMarket, 0, s.GridPointAmount)
-		}
-		if err != nil {
-			logger.Error(err)
-			return
-		}
-
-		order2, err := s.Exchange.GetOrder(s.Symbol, order.ID)
-		if err != nil {
-			logger.Error(err)
-			return
-		}
-
-		logger.Infof("order=%+v", *order2)
-
-		logger.Infof("委托成交 ID=%v 成交价=%v 成交数量=%v Direction=%v",
-			order2.ID, order2.AvgPrice, order2.FilledAmount, s.Direction)
-
-		s.Grid[len(s.Grid)-1].HoldPrice = order2.AvgPrice
-		s.Grid[len(s.Grid)-1].HoldAmount = order2.FilledAmount
-	}
-	if len(s.Grid) > 0 &&
-		((s.Direction == 1 && nowAskPrice < s.Grid[len(s.Grid)-1].CoverPrice) ||
-			(s.Direction == -1 && nowBidPrice > s.Grid[len(s.Grid)-1].CoverPrice)) {
-		var order *crex.Order
-		var err error
-		size := s.Grid[len(s.Grid)-1].HoldAmount
-		if s.Direction == 1 {
-			order, err = s.Exchange.OpenLong(s.Symbol, crex.OrderTypeMarket, 0, size)
-		} else {
-			order, err = s.Exchange.OpenShort(s.Symbol, crex.OrderTypeMarket, 0, size)
-		}
-		if err != nil {
-			logger.Error(err)
-			return
-		}
-
-		order2, err := s.Exchange.GetOrder(s.Symbol, order.ID)
-		if err != nil {
-			logger.Error(err)
-			return
-		}
-
-		logger.Infof("order=%#v", order2)
-		GridPop(&s.Grid)
-		s.StopWin++
-	} else if len(s.Grid) > s.GridNum {
-		var order *crex.Order
-		var err error
-		size := s.Grid[0].HoldAmount
-		if s.Direction == 1 {
-			order, err = s.Exchange.OpenLong(s.Symbol, crex.OrderTypeMarket, 0, size)
-		} else {
-			order, err = s.Exchange.OpenShort(s.Symbol, crex.OrderTypeMarket, 0, size)
-		}
-		if err != nil {
-			logger.Error(err)
-			return
-		}
-
-		order2, err := s.Exchange.GetOrder(s.Symbol, order.ID)
-		if err != nil {
-			logger.Error(err)
-			return
-		}
-
-		logger.Infof("order=%#v", order2)
-		GridShift(&s.Grid)
-		s.StopLoss++
-	}
-}
-
-func (s *GridStrategy) Run() error {
-	/*order1, err := s.Exchange.OpenLong(s.Symbol, crex.OrderTypeMarket, 0, 50)
-	if err != nil {
-		logger.Error(err)
-		return err
-	}
-	logger.Infof("%+v", *order1)
+	g.Trade(futures.SideTypeSell, 0, g.GridPointAmount)
 	time.Sleep(time.Second * 5)
-	order2, err := s.Exchange.OpenShort(s.Symbol, crex.OrderTypeMarket, 0, 50)
-	if err != nil {
-		logger.Error(err)
-		return err
-	}
-	logger.Infof("%+v", *order2)
-	return nil*/
+	g.Trade(futures.SideTypeBuy, 0, g.GridPointAmount)
 
-	for {
-		s.OnTick()
-		time.Sleep(500 * time.Millisecond)
-	}
 	return nil
 }
 
-func (s *GridStrategy) OnExit() error {
+/*
+1.双向持仓模式下 positionSide LONG/SHORT
+2.双向持仓模式下 reduceOnly 不接受此参数
+*/
+func (g *GridStrategy) Trade(sideType futures.SideType, price, amount float64) (*futures.Order, error) {
+	service := g.client.NewCreateOrderService().
+		Symbol(g.Symbol).Quantity(fmt.Sprint(amount)).Side(sideType).Type(futures.OrderTypeMarket)
+	if price > 0 {
+		service = service.Price(fmt.Sprint(price))
+	}
+
+	// SHORT BOTH
+	service = service.PositionSide("LONG")
+	resp, err := service.Do(context.Background())
+	if err != nil {
+		logger.Error(err)
+		return nil, err
+	}
+
+	orderInfo, err := g.client.NewGetOrderService().
+		Symbol(g.Symbol).OrderID(resp.OrderID).Do(context.Background())
+	if err != nil {
+		logger.Error(err)
+		return nil, err
+	}
+	logger.Infof("order=%#v", orderInfo)
+
+	return orderInfo, nil
+}
+
+func (g *GridStrategy) Run() error {
+	for {
+		g.OnTick()
+		time.Sleep(2 * time.Second)
+	}
 	return nil
 }
 
 func main() {
 	logger.Info("grid strategy start")
-	grid := &GridStrategy{}
-	if err := serve.Serve(grid); err != nil {
-		logger.Error(err)
+
+	grid := &GridStrategy{
+		client: futures.NewClient(ApiKey, SecretKey),
+
+		Symbol:          Symbol,
+		Direction:       Direction,
+		GridNum:         GridNum,
+		GridPointAmount: GridPointAmount,
+		GridPointDis:    GridPointDis,
+		GridCovDis:      GridCovDis,
 	}
+	grid.OnInit()
+	grid.Run()
 }
