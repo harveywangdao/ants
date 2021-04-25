@@ -79,8 +79,18 @@ func (g *GridStrategy) OnTick() error {
 		logger.Error(err)
 		return err
 	}
-	data, _ = json.Marshal(account)
-	logger.Info("account:", string(data))
+	//data, _ = json.Marshal(account)
+	//logger.Info("account:", string(data))
+
+	for i := 0; i < len(account.Assets); i++ {
+		logger.Infof("%#v", account.Assets[i])
+	}
+
+	for i := 0; i < len(account.Positions); i++ {
+		if account.Positions[i].Symbol == g.Symbol {
+			logger.Infof("%s: %#v", g.Symbol, account.Positions[i])
+		}
+	}
 
 	g.Trade(futures.SideTypeSell, 0, g.GridPointAmount)
 	time.Sleep(time.Second * 5)
