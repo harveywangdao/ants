@@ -73,7 +73,7 @@ func (g *GridStrategy) OnTick() error {
 		return err
 	}
 	for i := 0; i < len(klines); i++ {
-		logger.Info(*klines[i])
+		logger.Infof("%+v", *klines[i])
 	}
 
 	g.Trade(futures.SideTypeSell, 0, g.GridPointAmount)
