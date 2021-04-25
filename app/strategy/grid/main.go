@@ -129,10 +129,10 @@ func (s *GridStrategy) UpdateGrid(ob *crex.OrderBook) {
 		logger.Infof("order=%+v", *order2)
 
 		logger.Infof("委托成交 ID=%v 成交价=%v 成交数量=%v Direction=%v",
-			order2.ID, order2.AvgPrice, order2.Amount, s.Direction)
+			order2.ID, order2.AvgPrice, order2.FilledAmount, s.Direction)
 
 		s.Grid[len(s.Grid)-1].HoldPrice = order2.AvgPrice
-		s.Grid[len(s.Grid)-1].HoldAmount = order2.Amount
+		s.Grid[len(s.Grid)-1].HoldAmount = order2.FilledAmount
 	}
 	if len(s.Grid) > 0 &&
 		((s.Direction == 1 && nowAskPrice < s.Grid[len(s.Grid)-1].CoverPrice) ||
