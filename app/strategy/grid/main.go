@@ -221,6 +221,7 @@ func (g *GridStrategy) Position() (*futures.AccountPosition, error) {
 }
 
 func (g *GridStrategy) Run() error {
+	g.OnTick()
 	tk := time.NewTicker(60 * time.Second)
 	defer tk.Stop()
 
