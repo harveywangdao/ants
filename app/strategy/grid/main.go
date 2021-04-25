@@ -32,8 +32,9 @@ const (
 type GridStrategy struct {
 	client *futures.Client
 
-	Symbol    string  `opt:"symbol,BTUSDT"`
-	Direction float64 `opt:"direction,1"` // 网格方向 up 1, down -1
+	PositionSide string
+	Symbol       string  `opt:"symbol,BTUSDT"`
+	Direction    float64 `opt:"direction,1"` // 网格方向 up 1, down -1
 
 	GridNum         int     `opt:"grid_num,10"`         // 网格节点数量 10
 	GridPointAmount float64 `opt:"grid_point_amount,1"` // 网格节点下单量 1
@@ -87,7 +88,7 @@ func (g *GridStrategy) OnTick() error {
 	}
 
 	for i := 0; i < len(account.Positions); i++ {
-		if account.Positions[i].Symbol == g.Symbol {
+		if account.Positions[i].Symbol == g.Symbol && account.Positions[i].PositionSide == futures.PositionSideType(g.PositionSide) {
 			logger.Infof("%s: %#v", g.Symbol, account.Positions[i])
 		}
 	}
@@ -111,7 +112,7 @@ func (g *GridStrategy) Trade(sideType futures.SideType, price, amount float64) (
 	}
 
 	// SHORT BOTH
-	service = service.PositionSide("LONG")
+	service = service.PositionSide(futures.PositionSideType(g.PositionSide))
 	resp, err := service.Do(context.Background())
 	if err != nil {
 		logger.Error(err)
@@ -143,6 +144,7 @@ func main() {
 	grid := &GridStrategy{
 		client: futures.NewClient(ApiKey, SecretKey),
 
+		PositionSide:    "LONG",
 		Symbol:          Symbol,
 		Direction:       Direction,
 		GridNum:         GridNum,
