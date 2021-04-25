@@ -120,11 +120,19 @@ func (s *GridStrategy) UpdateGrid(ob *crex.OrderBook) {
 			return
 		}
 
-		logger.Infof("委托成交 ID=%v 成交价=%v 成交数量=%v Direction=%v",
-			order.ID, order.AvgPrice, order.FilledAmount, s.Direction)
+		order2, err := s.Exchange.GetOrder(s.Symbol, order.ID)
+		if err != nil {
+			logger.Error(err)
+			return
+		}
 
-		s.Grid[len(s.Grid)-1].HoldPrice = order.AvgPrice
-		s.Grid[len(s.Grid)-1].HoldAmount = order.FilledAmount
+		logger.Infof("order=%+v", *order2)
+
+		logger.Infof("委托成交 ID=%v 成交价=%v 成交数量=%v Direction=%v",
+			order2.ID, order2.AvgPrice, order2.Amount, s.Direction)
+
+		s.Grid[len(s.Grid)-1].HoldPrice = order2.AvgPrice
+		s.Grid[len(s.Grid)-1].HoldAmount = order2.Amount
 	}
 	if len(s.Grid) > 0 &&
 		((s.Direction == 1 && nowAskPrice < s.Grid[len(s.Grid)-1].CoverPrice) ||
@@ -141,7 +149,14 @@ func (s *GridStrategy) UpdateGrid(ob *crex.OrderBook) {
 			logger.Error(err)
 			return
 		}
-		logger.Infof("order=%#v", order)
+
+		order2, err := s.Exchange.GetOrder(s.Symbol, order.ID)
+		if err != nil {
+			logger.Error(err)
+			return
+		}
+
+		logger.Infof("order=%#v", order2)
 		GridPop(&s.Grid)
 		s.StopWin++
 	} else if len(s.Grid) > s.GridNum {
@@ -157,30 +172,34 @@ func (s *GridStrategy) UpdateGrid(ob *crex.OrderBook) {
 			logger.Error(err)
 			return
 		}
-		logger.Infof("order=%#v", order)
+
+		order2, err := s.Exchange.GetOrder(s.Symbol, order.ID)
+		if err != nil {
+			logger.Error(err)
+			return
+		}
+
+		logger.Infof("order=%#v", order2)
 		GridShift(&s.Grid)
 		s.StopLoss++
 	}
 }
 
 func (s *GridStrategy) Run() error {
-	order1, err := s.Exchange.OpenLong(s.Symbol, crex.OrderTypeMarket, 0, 50)
+	/*order1, err := s.Exchange.OpenLong(s.Symbol, crex.OrderTypeMarket, 0, 50)
 	if err != nil {
 		logger.Error(err)
 		return err
 	}
 	logger.Infof("%+v", *order1)
-
 	time.Sleep(time.Second * 5)
-
 	order2, err := s.Exchange.OpenShort(s.Symbol, crex.OrderTypeMarket, 0, 50)
 	if err != nil {
 		logger.Error(err)
 		return err
 	}
 	logger.Infof("%+v", *order2)
-
-	return nil
+	return nil*/
 
 	for {
 		s.OnTick()
