@@ -66,6 +66,9 @@ func (g *GridStrategy) OnTick() error {
 	nowAskPrice, nowBidPrice := res.Asks[0], res.Bids[0]
 	logger.Infof("nowAskPrice=%v, nowBidPrice=%v", nowAskPrice, nowBidPrice)
 
+	g.Account()
+	return nil
+
 	amount := g.sky()
 	if amount > 0 {
 		g.Trade(futures.SideTypeBuy, 0, float64(amount)*g.GridPointAmount)
