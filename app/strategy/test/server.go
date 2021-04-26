@@ -119,5 +119,5 @@ func do7() {
 }
 
 func main() {
-	do7()
+	do1()
 }
