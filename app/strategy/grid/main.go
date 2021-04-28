@@ -74,11 +74,11 @@ func (g *GridStrategy) OnTick() error {
 		logger.Error(err)
 		return err
 	}
-	/*positionAmt, err := strconv.ParseFloat(position.PositionAmt, 64)
+	positionAmt, err := strconv.ParseFloat(position.PositionAmt, 64)
 	if err != nil {
-		logger.Error("positionAmt parse float64 fail, err", err)
+		logger.Error(err)
 		return err
-	}*/
+	}
 	nowPrice, err := g.getNewestPrice()
 	if err != nil {
 		logger.Error(err)
@@ -90,7 +90,7 @@ func (g *GridStrategy) OnTick() error {
 		return err
 	}
 
-	logger.Infof("availableBalance: %v, nowPrice: %v, entryPrice: %v", availableBalance, nowPrice, entryPrice)
+	logger.Infof("availableBalance: %v, nowPrice: %v, entryPrice: %v, positionAmt: %v", availableBalance, nowPrice, entryPrice, positionAmt)
 	if entryPrice > nowPrice && (entryPrice-nowPrice)/entryPrice > 0.3 {
 		g.Trade(futures.SideTypeSell, 0, 10000*g.GridPointAmount)
 		return nil
@@ -117,7 +117,10 @@ func (g *GridStrategy) getAmount() int {
 		logger.Error("klines nums error")
 		return 0
 	}
-	logger.Info(klines)
+	for i := 0; i < len(klines); i++ {
+		logger.Infof("%#v", klines[i])
+	}
+
 	return 0
 }
 
@@ -127,11 +130,9 @@ func (g *GridStrategy) getNewestPrice() (float64, error) {
 		logger.Error(err)
 		return 0.0, err
 	}
-	logger.Info("symbolPrices:", symbolPrices)
 	if len(symbolPrices) == 0 {
 		return 0.0, fmt.Errorf("can not get newest price")
 	}
-
 	price, err := strconv.ParseFloat(symbolPrices[0].Price, 64)
 	if err != nil {
 		logger.Error(err)
