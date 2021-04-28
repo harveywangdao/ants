@@ -124,6 +124,43 @@ func (g *GridStrategy) getAmount() int {
 	return 0
 }
 
+func (g *GridStrategy) Minute1() error {
+	klines, err := g.client.NewKlinesService().Symbol(g.Symbol).Interval("1m").Limit(10).Do(context.Background())
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+
+	updown := make([]int, len(klines))
+	rate := 0.0
+
+	for i := len(klines) - 1; i >= 0; i++ {
+		if klines[i].Open < klines[i].Close {
+			updown[i] = 1
+		} else {
+			updown[i] = -1
+		}
+	}
+
+	return nil
+}
+
+func (g *GridStrategy) Minute5() {
+
+}
+
+func (g *GridStrategy) Minute15() {
+
+}
+
+func (g *GridStrategy) Hour() {
+
+}
+
+func (g *GridStrategy) Day() {
+
+}
+
 func (g *GridStrategy) getNewestPrice() (float64, error) {
 	symbolPrices, err := g.client.NewListPricesService().Symbol(g.Symbol).Do(context.Background())
 	if err != nil {
