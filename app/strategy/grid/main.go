@@ -97,7 +97,7 @@ func (g *GridStrategy) OnTick() error {
 
 func (g *GridStrategy) Minute1Buy() error {
 	// 1m 3m 5m 15m 30m 1h 2h 4h 6h 8h 12h 1d 3d 1w 1M
-	klines, err := g.client.NewKlinesService().Symbol(g.Symbol).Interval("1m").Limit(5).Do(context.Background())
+	klines, err := g.client.NewKlinesService().Symbol(g.Symbol).Interval("1m").Limit(6).Do(context.Background())
 	if err != nil {
 		logger.Error(err)
 		return err
@@ -107,6 +107,7 @@ func (g *GridStrategy) Minute1Buy() error {
 	rates := make([]float64, n)
 
 	for i := 0; i < n; i++ {
+		logger.Infof("%#v", klines[i])
 		openp, err := strconv.ParseFloat(klines[i].Open, 64)
 		if err != nil {
 			logger.Error(err)
@@ -121,6 +122,8 @@ func (g *GridStrategy) Minute1Buy() error {
 		rates[i] = (closep - openp) / openp
 	}
 
+	logger.Info(rates)
+
 	down := 0
 	for i := 0; i < n-1; i++ {
 		if rates[i] < 0 {
@@ -128,13 +131,16 @@ func (g *GridStrategy) Minute1Buy() error {
 			continue
 		}
 		if rates[i] > g.NormalWaveRate {
+			logger.Errorf("rate > NormalWaveRate, rate: %f, NormalWaveRate: %f", rates[i], g.NormalWaveRate)
 			return fmt.Errorf("not buy point")
 		}
 	}
-	if down <= 3 {
+	if down <= 2 {
+		logger.Error("down count <= 2, down:", down)
 		return fmt.Errorf("not buy point")
 	}
 	if rates[n-1] < 0 {
+		logger.Error("last rate < 0, rate:", rates[n-1])
 		return fmt.Errorf("not buy point")
 	}
 
