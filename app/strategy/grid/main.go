@@ -33,37 +33,26 @@ const (
 type GridStrategy struct {
 	client *futures.Client
 
-	PositionSide string
-	Symbol       string  `opt:"symbol,BTUSDT"`
-	Direction    float64 `opt:"direction,1"` // 网格方向 up 1, down -1
-
+	PositionSide    string
+	Symbol          string  `opt:"symbol,BTUSDT"`
+	Direction       float64 `opt:"direction,1"`         // 网格方向 up 1, down -1
 	GridNum         int     `opt:"grid_num,10"`         // 网格节点数量 10
 	GridPointAmount float64 `opt:"grid_point_amount,1"` // 网格节点下单量 1
 	GridPointDis    float64 `opt:"grid_point_dis,20"`   // 网格节点间距 20
 	GridCovDis      float64 `opt:"grid_cov_dis,50"`     // 网格节点平仓价差 50
+
+	state          string
+	WinRate        float64
+	StopRate       float64
+	NormalWaveRate float64
 }
 
 func (g *GridStrategy) OnTick() error {
-	res, err := g.client.NewDepthService().Symbol(g.Symbol).Limit(5).Do(context.Background())
+	availableBalance, err := g.getAvailableBalance("USDT")
 	if err != nil {
 		logger.Error(err)
 		return err
 	}
-	logger.Info("depth asks:", res.Asks)
-	logger.Info("depth bids:", res.Bids)
-
-	nowAskPrice, err := strconv.ParseFloat(res.Asks[0].Price, 64)
-	if err != nil {
-		logger.Error("nowAskPrice parse float64 fail, err", err)
-		return err
-	}
-	nowBidPrice, err := strconv.ParseFloat(res.Bids[0].Price, 64)
-	if err != nil {
-		logger.Error("nowBidPrice parse float64 fail, err", err)
-		return err
-	}
-	logger.Infof("nowAskPrice=%v, nowBidPrice=%v", nowAskPrice, nowBidPrice)
-
 	position, err := g.Position()
 	if err != nil {
 		logger.Error(err)
@@ -84,48 +73,31 @@ func (g *GridStrategy) OnTick() error {
 		logger.Error(err)
 		return err
 	}
-	availableBalance, err := g.getAvailableBalance("USDT")
-	if err != nil {
-		logger.Error(err)
-		return err
-	}
 
 	logger.Infof("availableBalance: %v, nowPrice: %v, entryPrice: %v, positionAmt: %v", availableBalance, nowPrice, entryPrice, positionAmt)
-	if entryPrice > nowPrice && (entryPrice-nowPrice)/entryPrice > 0.3 {
+
+	// 止损
+	if entryPrice > nowPrice && (entryPrice-nowPrice)/entryPrice > g.StopRate {
 		g.Trade(futures.SideTypeSell, 0, 10000*g.GridPointAmount)
 		return nil
 	}
 
-	amount := g.getAmount()
-	if amount > 0 {
-		g.Trade(futures.SideTypeBuy, 0, float64(amount)*g.GridPointAmount)
-	} else if amount < 0 {
-		g.Trade(futures.SideTypeSell, 0, float64(-amount)*g.GridPointAmount)
+	// 判断是否可以卖
+	if positionAmt > 0 && nowPrice > entryPrice && (nowPrice-entryPrice)/nowPrice > g.WinRate {
+		g.Trade(futures.SideTypeSell, 0, positionAmt)
+		return nil
+	}
+
+	if g.Minute1Buy() == nil && (positionAmt+g.GridPointAmount)*nowPrice < availableBalance*0.9 {
+		g.Trade(futures.SideTypeBuy, 0, positionAmt+g.GridPointAmount)
 	}
 
 	return nil
 }
 
-func (g *GridStrategy) getAmount() int {
+func (g *GridStrategy) Minute1Buy() error {
 	// 1m 3m 5m 15m 30m 1h 2h 4h 6h 8h 12h 1d 3d 1w 1M
-	klines, err := g.client.NewKlinesService().Symbol(g.Symbol).Interval("1m").Limit(3).Do(context.Background())
-	if err != nil {
-		logger.Error(err)
-		return 0
-	}
-	if len(klines) != 3 {
-		logger.Error("klines nums error")
-		return 0
-	}
-	for i := 0; i < len(klines); i++ {
-		logger.Infof("%#v", klines[i])
-	}
-
-	return 0
-}
-
-func (g *GridStrategy) Minute1() error {
-	klines, err := g.client.NewKlinesService().Symbol(g.Symbol).Interval("1m").Limit(10).Do(context.Background())
+	klines, err := g.client.NewKlinesService().Symbol(g.Symbol).Interval("1m").Limit(5).Do(context.Background())
 	if err != nil {
 		logger.Error(err)
 		return err
@@ -134,24 +106,36 @@ func (g *GridStrategy) Minute1() error {
 	n := len(klines)
 	rates := make([]float64, n)
 
-	closep, err := strconv.ParseFloat(klines[n-1].Close, 64)
-	if err != nil {
-		logger.Error(err)
-		return err
-	}
-
-	for i := n - 1; i >= 0; i++ {
+	for i := 0; i < n; i++ {
 		openp, err := strconv.ParseFloat(klines[i].Open, 64)
 		if err != nil {
 			logger.Error(err)
 			return err
 		}
+		closep, err := strconv.ParseFloat(klines[i].Close, 64)
+		if err != nil {
+			logger.Error(err)
+			return err
+		}
 
-		rates[i] = (closep - openp) / float64(klines[n-1].CloseTime-klines[i].OpenTime)
+		rates[i] = (closep - openp) / openp
 	}
 
-	for i := n - 1; i >= 0; i++ {
-
+	down := 0
+	for i := 0; i < n-1; i++ {
+		if rates[i] < 0 {
+			down++
+			continue
+		}
+		if rates[i] > g.NormalWaveRate {
+			return fmt.Errorf("not buy point")
+		}
+	}
+	if down <= 3 {
+		return fmt.Errorf("not buy point")
+	}
+	if rates[n-1] < 0 {
+		return fmt.Errorf("not buy point")
 	}
 
 	return nil
@@ -171,6 +155,29 @@ func (g *GridStrategy) Hour() {
 
 func (g *GridStrategy) Day() {
 
+}
+
+func (g *GridStrategy) GetDepth() error {
+	res, err := g.client.NewDepthService().Symbol(g.Symbol).Limit(5).Do(context.Background())
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+	logger.Info("depth asks:", res.Asks)
+	logger.Info("depth bids:", res.Bids)
+
+	nowAskPrice, err := strconv.ParseFloat(res.Asks[0].Price, 64)
+	if err != nil {
+		logger.Error("nowAskPrice parse float64 fail, err", err)
+		return err
+	}
+	nowBidPrice, err := strconv.ParseFloat(res.Bids[0].Price, 64)
+	if err != nil {
+		logger.Error("nowBidPrice parse float64 fail, err", err)
+		return err
+	}
+	logger.Infof("nowAskPrice=%v, nowBidPrice=%v", nowAskPrice, nowBidPrice)
+	return nil
 }
 
 func (g *GridStrategy) getNewestPrice() (float64, error) {
@@ -291,6 +298,10 @@ func main() {
 		GridPointAmount: GridPointAmount,
 		GridPointDis:    GridPointDis,
 		GridCovDis:      GridCovDis,
+
+		WinRate:        0.05,
+		StopRate:       0.1,
+		NormalWaveRate: 0.001,
 	}
 	grid.Run()
 }
