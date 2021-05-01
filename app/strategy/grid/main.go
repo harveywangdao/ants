@@ -131,15 +131,27 @@ func (g *GridStrategy) Minute1() error {
 		return err
 	}
 
-	updown := make([]int, len(klines))
-	rate := 0.0
+	n := len(klines)
+	rates := make([]float64, n)
 
-	for i := len(klines) - 1; i >= 0; i++ {
-		if klines[i].Open < klines[i].Close {
-			updown[i] = 1
-		} else {
-			updown[i] = -1
+	closep, err := strconv.ParseFloat(klines[n-1].Close, 64)
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+
+	for i := n - 1; i >= 0; i++ {
+		openp, err := strconv.ParseFloat(klines[i].Open, 64)
+		if err != nil {
+			logger.Error(err)
+			return err
 		}
+
+		rates[i] = (closep - openp) / float64(klines[n-1].CloseTime-klines[i].OpenTime)
+	}
+
+	for i := n - 1; i >= 0; i++ {
+
 	}
 
 	return nil
