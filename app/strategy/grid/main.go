@@ -13,7 +13,7 @@ import (
 
 func init() {
 	logger.SetHandlers(logger.Console)
-	logger.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
+	logger.SetFlags(log.Ldate | log.Ltime | log.Lshortfile | log.Lmicroseconds)
 	logger.SetLevel(logger.INFO)
 }
 
@@ -102,10 +102,8 @@ func (g *GridStrategy) Minute1Buy() error {
 		logger.Error(err)
 		return err
 	}
-
 	n := len(klines)
 	rates := make([]float64, n)
-
 	for i := 0; i < n; i++ {
 		logger.Infof("%#v", klines[i])
 		openp, err := strconv.ParseFloat(klines[i].Open, 64)
@@ -118,14 +116,12 @@ func (g *GridStrategy) Minute1Buy() error {
 			logger.Error(err)
 			return err
 		}
-
 		rates[i] = (closep - openp) / openp
 	}
-
 	logger.Info(rates)
 
 	down := 0
-	for i := 0; i < n-1; i++ {
+	for i := 0; i < n-2; i++ {
 		if rates[i] < 0 {
 			down++
 			continue
@@ -139,8 +135,14 @@ func (g *GridStrategy) Minute1Buy() error {
 		logger.Error("down count <= 2, down:", down)
 		return fmt.Errorf("not buy point")
 	}
-	if rates[n-1] < -g.NormalWaveRate {
-		logger.Error("last rate < 0, rate:", rates[n-1])
+
+	if rates[n-2] < -g.NormalWaveRate {
+		logger.Errorf("last two rate < -NormalWaveRate, rate: %f, NormalWaveRate: %f", rates[n-2], -g.NormalWaveRate)
+		return fmt.Errorf("not buy point")
+	}
+
+	if rates[n-1] < -g.NormalWaveRate*5 {
+		logger.Errorf("last one rate < -NormalWaveRate*5, rate: %f, NormalWaveRate: %f", rates[n-1], -g.NormalWaveRate*5)
 		return fmt.Errorf("not buy point")
 	}
 

@@ -10,19 +10,15 @@ require (
 	github.com/chuckpreslar/emission v0.0.0-20170206194824-a7ddd980baf9
 	github.com/coinrust/crex v1.2.14
 	github.com/coreos/etcd v3.3.17+incompatible
-	github.com/coreos/go-semver v0.3.0 // indirect
 	github.com/coreos/go-systemd v0.0.0-20191104093116-d3cd4ed1dbcf // indirect
-	github.com/coreos/pkg v0.0.0-20180928190104-399ea9e2e55f // indirect
 	github.com/frankrap/bitmex-api v1.0.1
 	github.com/frankrap/bybit-api v1.0.2
 	github.com/frankrap/deribit-api v1.0.3
 	github.com/frankrap/huobi-api v1.0.2
 	github.com/frankrap/okex-api v1.0.4
 	github.com/gin-gonic/gin v1.6.3
-	github.com/go-sql-driver/mysql v1.5.0 // indirect
 	github.com/gogo/protobuf v1.3.1 // indirect
 	github.com/golang/protobuf v1.4.2
-	github.com/google/uuid v1.1.1 // indirect
 	github.com/jhump/protoreflect v1.6.1
 	github.com/jinzhu/gorm v1.9.12
 	github.com/rocketlaunchr/dataframe-go v0.0.0-20200525081431-b8b481c96d94
