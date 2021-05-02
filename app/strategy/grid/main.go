@@ -329,7 +329,7 @@ func main() {
 		GridPointDis:    GridPointDis,
 		GridCovDis:      GridCovDis,
 
-		WinRate:        0.05,
+		WinRate:        0.015,
 		StopRate:       0.1,
 		NormalWaveRate: 0.003,
 	}
