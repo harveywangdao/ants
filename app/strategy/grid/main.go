@@ -139,7 +139,7 @@ func (g *GridStrategy) Minute1Buy() error {
 		logger.Error("down count <= 2, down:", down)
 		return fmt.Errorf("not buy point")
 	}
-	if rates[n-1] < 0 {
+	if rates[n-1] < -g.NormalWaveRate {
 		logger.Error("last rate < 0, rate:", rates[n-1])
 		return fmt.Errorf("not buy point")
 	}
@@ -307,7 +307,7 @@ func main() {
 
 		WinRate:        0.05,
 		StopRate:       0.1,
-		NormalWaveRate: 0.001,
+		NormalWaveRate: 0.003,
 	}
 	grid.Run()
 }
