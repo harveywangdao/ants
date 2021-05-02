@@ -75,24 +75,36 @@ func (g *GridStrategy) OnTick() error {
 	}
 
 	logger.Infof("availableBalance: %v, nowPrice: %v, entryPrice: %v, positionAmt: %v", availableBalance, nowPrice, entryPrice, positionAmt)
-
 	// 止损
+	logger.Infof("止损 (entryPrice-nowPrice)/entryPrice=%f, g.StopRate=%f", (entryPrice-nowPrice)/entryPrice, g.StopRate)
 	if entryPrice > nowPrice && (entryPrice-nowPrice)/entryPrice > g.StopRate {
 		g.Trade(futures.SideTypeSell, 0, 10000*g.GridPointAmount)
 		return nil
 	}
 
-	// 判断是否可以卖
+	// 止盈
+	logger.Infof("止盈 (nowPrice-entryPrice)/nowPrice=%f, g.WinRate=%f", (nowPrice-entryPrice)/nowPrice, g.WinRate)
 	if positionAmt > 0 && nowPrice > entryPrice && (nowPrice-entryPrice)/nowPrice > g.WinRate {
 		g.Trade(futures.SideTypeSell, 0, positionAmt)
 		return nil
 	}
 
-	if g.Minute1Buy() == nil && (positionAmt+g.GridPointAmount)*nowPrice < availableBalance*0.9 {
+	// 10倍杠杆
+	logger.Info("购买金额 (positionAmt+g.GridPointAmount)*nowPrice=", (positionAmt+g.GridPointAmount)*nowPrice)
+	logger.Info("剩余金额 availableBalance*9=", availableBalance*9)
+	if g.Minute1Buy() == nil && (positionAmt+g.GridPointAmount)*nowPrice < availableBalance*9 {
 		g.Trade(futures.SideTypeBuy, 0, positionAmt+g.GridPointAmount)
 	}
 
+	fmt.Println()
+
 	return nil
+}
+
+type KlineData struct {
+	Open  float64
+	Close float64
+	Rate  float64
 }
 
 func (g *GridStrategy) Minute1Buy() error {
@@ -103,7 +115,11 @@ func (g *GridStrategy) Minute1Buy() error {
 		return err
 	}
 	n := len(klines)
-	rates := make([]float64, n)
+	if n != 6 {
+		return fmt.Errorf("klines count error")
+	}
+
+	rates := make([]KlineData, n)
 	for i := 0; i < n; i++ {
 		logger.Infof("%#v", klines[i])
 		openp, err := strconv.ParseFloat(klines[i].Open, 64)
@@ -116,18 +132,24 @@ func (g *GridStrategy) Minute1Buy() error {
 			logger.Error(err)
 			return err
 		}
-		rates[i] = (closep - openp) / openp
+		rates[i].Rate = (closep - openp) / openp
+		rates[i].Open = openp
+		rates[i].Close = closep
 	}
 	logger.Info(rates)
 
+	if (rates[3].Close-rates[0].Open)/rates[0].Open < -0.01 && rates[4].Rate > -g.NormalWaveRate {
+		return nil
+	}
+
 	down := 0
 	for i := 0; i < n-2; i++ {
-		if rates[i] < 0 {
+		if rates[i].Rate < 0 {
 			down++
 			continue
 		}
-		if rates[i] > g.NormalWaveRate {
-			logger.Errorf("rate > NormalWaveRate, rate: %f, NormalWaveRate: %f", rates[i], g.NormalWaveRate)
+		if rates[i].Rate > g.NormalWaveRate {
+			logger.Errorf("rate > NormalWaveRate, rate: %f, NormalWaveRate: %f", rates[i].Rate, g.NormalWaveRate)
 			return fmt.Errorf("not buy point")
 		}
 	}
@@ -136,13 +158,13 @@ func (g *GridStrategy) Minute1Buy() error {
 		return fmt.Errorf("not buy point")
 	}
 
-	if rates[n-2] < -g.NormalWaveRate {
-		logger.Errorf("last two rate < -NormalWaveRate, rate: %f, NormalWaveRate: %f", rates[n-2], -g.NormalWaveRate)
+	if rates[n-2].Rate < -g.NormalWaveRate {
+		logger.Errorf("last two rate < -NormalWaveRate, rate: %f, NormalWaveRate: %f", rates[n-2].Rate, -g.NormalWaveRate)
 		return fmt.Errorf("not buy point")
 	}
 
-	if rates[n-1] < -g.NormalWaveRate*5 {
-		logger.Errorf("last one rate < -NormalWaveRate*5, rate: %f, NormalWaveRate: %f", rates[n-1], -g.NormalWaveRate*5)
+	if rates[n-1].Rate < -g.NormalWaveRate*5 {
+		logger.Errorf("last one rate < -NormalWaveRate*5, rate: %f, NormalWaveRate: %f", rates[n-1].Rate, -g.NormalWaveRate*5)
 		return fmt.Errorf("not buy point")
 	}
 
