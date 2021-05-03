@@ -25,7 +25,7 @@ const (
 	Symbol          = "DOGEUSDT"
 	Direction       = 1      // 方向: 1(UP) -1(Down)
 	GridNum         = 10     // 网格节点数量 10
-	GridPointAmount = 20.0   // 网格节点下单量 1
+	GridPointAmount = 100.0  // 网格节点下单量 1
 	GridPointDis    = 0.0002 // 网格节点间距 20
 	GridCovDis      = 0.0005 // 网格节点平仓价差 50
 )
@@ -73,14 +73,39 @@ func (g *GridStrategy) OnTick() error {
 		logger.Error(err)
 		return err
 	}
-
 	logger.Infof("availableBalance: %v, nowPrice: %v, entryPrice: %v, positionAmt: %v", availableBalance, nowPrice, entryPrice, positionAmt)
+
+	if nowPrice > entryPrice {
+		logger.Infof("盈利 %f USDT", (nowPrice-entryPrice)*positionAmt)
+	} else {
+		logger.Infof("亏损 %f USDT", (entryPrice-nowPrice)*positionAmt)
+	}
+
 	// 止损
-	logger.Infof("止损 (entryPrice-nowPrice)/entryPrice=%f, g.StopRate=%f", (entryPrice-nowPrice)/entryPrice, g.StopRate)
 	if entryPrice > nowPrice && (entryPrice-nowPrice)/entryPrice > g.StopRate {
-		g.Trade(futures.SideTypeSell, 0, 10000*g.GridPointAmount)
+		logger.Infof("止损 (entryPrice-nowPrice)/entryPrice=%f, g.StopRate=%f", (entryPrice-nowPrice)/entryPrice, g.StopRate)
+		g.Trade(futures.SideTypeSell, 0, positionAmt)
 		return nil
 	}
+
+	op, err := g.KlineState("1m", 31)
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+
+	logger.Info("operate:", op)
+	if op == BUY && positionAmt == 0.0 {
+		g.Trade(futures.SideTypeBuy, 0, g.GridPointAmount)
+	} else if op == SELL && positionAmt > 0.0 {
+		if entryPrice > nowPrice {
+			return nil
+		}
+		g.Trade(futures.SideTypeSell, 0, positionAmt)
+	}
+
+	fmt.Println("\n")
+	return nil
 
 	// 止盈
 	logger.Infof("止盈 (nowPrice-entryPrice)/nowPrice=%f, g.WinRate=%f", (nowPrice-entryPrice)/nowPrice, g.WinRate)
@@ -99,12 +124,6 @@ func (g *GridStrategy) OnTick() error {
 	fmt.Println()
 
 	return nil
-}
-
-type KlineData struct {
-	Open  float64
-	Close float64
-	Rate  float64
 }
 
 func (g *GridStrategy) Minute1Buy() error {
@@ -265,7 +284,7 @@ func (g *GridStrategy) getAvailableBalance(asset string) (float64, error) {
 	}
 	for i := 0; i < len(balances); i++ {
 		if balances[i].Asset == asset {
-			logger.Infof("%#v", balances[i])
+			//logger.Infof("%#v", balances[i])
 			availableBalance, err := strconv.ParseFloat(balances[i].AvailableBalance, 64)
 			if err != nil {
 				logger.Error(err)
@@ -287,14 +306,14 @@ func (g *GridStrategy) Position() (*futures.AccountPosition, error) {
 	// {Asset:"USDT", InitialMargin:"2.73550490", MaintMargin:"0.27355049", MarginBalance:"6.26307065", MaxWithdrawAmount:"3.52756575", OpenOrderInitialMargin:"0.00000000", PositionInitialMargin:"2.73550490", UnrealizedProfit:"0.02344900", WalletBalance:"6.23962165"}
 	for i := 0; i < len(account.Assets); i++ {
 		if account.Assets[i].Asset == "USDT" {
-			logger.Infof("%#v", account.Assets[i])
+			//logger.Infof("%#v", account.Assets[i])
 		}
 	}
 
 	// {Isolated:false, Leverage:"10", InitialMargin:"2.73550490", MaintMargin:"0.27355049", OpenOrderInitialMargin:"0", PositionInitialMargin:"2.73550490", Symbol:"DOGEUSDT", UnrealizedProfit:"0.02344900", EntryPrice:"0.273316", MaxNotional:"100000", PositionSide:"LONG", PositionAmt:"100"}
 	for i := 0; i < len(account.Positions); i++ {
 		if account.Positions[i].Symbol == g.Symbol && account.Positions[i].PositionSide == futures.PositionSideType(g.PositionSide) {
-			logger.Infof("%s: %#v", g.Symbol, account.Positions[i])
+			//logger.Infof("%s: %#v", g.Symbol, account.Positions[i])
 			return account.Positions[i], nil
 		}
 	}
@@ -303,7 +322,7 @@ func (g *GridStrategy) Position() (*futures.AccountPosition, error) {
 
 func (g *GridStrategy) Run() error {
 	g.OnTick()
-	tk := time.NewTicker(1 * time.Minute)
+	tk := time.NewTicker(5 * time.Second)
 	defer tk.Stop()
 
 	for {
@@ -330,7 +349,7 @@ func main() {
 		GridCovDis:      GridCovDis,
 
 		WinRate:        0.015,
-		StopRate:       0.1,
+		StopRate:       0.05,
 		NormalWaveRate: 0.003,
 	}
 	grid.Run()
