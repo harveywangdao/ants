@@ -48,6 +48,10 @@ type GridStrategy struct {
 }
 
 func (g *GridStrategy) OnTick() error {
+	defer func() {
+		fmt.Println("\n")
+	}()
+
 	availableBalance, err := g.getAvailableBalance("USDT")
 	if err != nil {
 		logger.Error(err)
@@ -76,9 +80,9 @@ func (g *GridStrategy) OnTick() error {
 	logger.Infof("availableBalance: %v, nowPrice: %v, entryPrice: %v, positionAmt: %v", availableBalance, nowPrice, entryPrice, positionAmt)
 
 	if nowPrice > entryPrice {
-		logger.Infof("盈利 %f USDT", (nowPrice-entryPrice)*positionAmt)
+		logger.Infof("盈利 %f USDT, 幅度:%f%%", (nowPrice-entryPrice)*positionAmt, 100.0*(nowPrice-entryPrice)/entryPrice)
 	} else {
-		logger.Infof("亏损 %f USDT", (entryPrice-nowPrice)*positionAmt)
+		logger.Infof("亏损 %f USDT, 跌幅:%f%%", (entryPrice-nowPrice)*positionAmt, 100.0*(entryPrice-nowPrice)/entryPrice)
 	}
 
 	// 止损
@@ -87,6 +91,9 @@ func (g *GridStrategy) OnTick() error {
 		g.Trade(futures.SideTypeSell, 0, positionAmt)
 		return nil
 	}
+
+	g.KlineState2("1m")
+	return nil
 
 	op, err := g.KlineState("1m", 31)
 	if err != nil {
@@ -98,13 +105,12 @@ func (g *GridStrategy) OnTick() error {
 	if op == BUY && positionAmt == 0.0 {
 		g.Trade(futures.SideTypeBuy, 0, g.GridPointAmount)
 	} else if op == SELL && positionAmt > 0.0 {
-		if entryPrice > nowPrice {
+		if (nowPrice-entryPrice)/entryPrice < 0.008 {
 			return nil
 		}
 		g.Trade(futures.SideTypeSell, 0, positionAmt)
 	}
 
-	fmt.Println("\n")
 	return nil
 
 	// 止盈
