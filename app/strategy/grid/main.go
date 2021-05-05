@@ -94,42 +94,6 @@ func (g *GridStrategy) OnTick() error {
 
 	g.KlineState2("1m")
 	return nil
-
-	op, err := g.KlineState("1m", 31)
-	if err != nil {
-		logger.Error(err)
-		return err
-	}
-
-	logger.Info("operate:", op)
-	if op == BUY && positionAmt == 0.0 {
-		g.Trade(futures.SideTypeBuy, 0, g.GridPointAmount)
-	} else if op == SELL && positionAmt > 0.0 {
-		if (nowPrice-entryPrice)/entryPrice < 0.008 {
-			return nil
-		}
-		g.Trade(futures.SideTypeSell, 0, positionAmt)
-	}
-
-	return nil
-
-	// 止盈
-	logger.Infof("止盈 (nowPrice-entryPrice)/nowPrice=%f, g.WinRate=%f", (nowPrice-entryPrice)/nowPrice, g.WinRate)
-	if positionAmt > 0 && nowPrice > entryPrice && (nowPrice-entryPrice)/nowPrice > g.WinRate {
-		g.Trade(futures.SideTypeSell, 0, positionAmt)
-		return nil
-	}
-
-	// 10倍杠杆
-	logger.Info("购买金额 (positionAmt+g.GridPointAmount)*nowPrice=", (positionAmt+g.GridPointAmount)*nowPrice)
-	logger.Info("剩余金额 availableBalance*9=", availableBalance*9)
-	if g.Minute1Buy() == nil && (positionAmt+g.GridPointAmount)*nowPrice < availableBalance*9 {
-		g.Trade(futures.SideTypeBuy, 0, positionAmt+g.GridPointAmount)
-	}
-
-	fmt.Println()
-
-	return nil
 }
 
 func (g *GridStrategy) Minute1Buy() error {

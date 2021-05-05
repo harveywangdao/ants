@@ -224,31 +224,6 @@ func (g *GridStrategy) KlineState2(interval string) (Operate, error) {
 	}
 	//logger.Info("rates:", rates)
 
-	//lastkline := rates[n-1]
-	//n--
-	//rates = rates[:n]
-
-	/*highest, lowest := 0.0, math.MaxFloat64
-	highestIndex, lowestIndex := 0, 0
-	down := 0
-
-	for i := 0; i < n; i++ {
-		if rates[i].Rate < 0 {
-			down++
-		}
-		if rates[i].High > highest {
-			highest = rates[i].High
-			highestIndex = i + 1
-		}
-		if rates[i].Low < lowest {
-			lowest = rates[i].Low
-			lowestIndex = i + 1
-		}
-	}*/
-
-	//logger.Infof("highest: %f, highestIndex: %d", highest, highestIndex)
-	//logger.Infof("lowest: %f, lowestIndex: %d", lowest, lowestIndex)
-
 	g.bottomtop1(rates)
 
 	return WAIT, nil
