@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"log"
 	"strconv"
@@ -45,6 +46,8 @@ type GridStrategy struct {
 	WinRate        float64
 	StopRate       float64
 	NormalWaveRate float64
+
+	buysell bool
 }
 
 func (g *GridStrategy) OnTick() error {
@@ -181,6 +184,10 @@ func (g *GridStrategy) getNewestPrice() (float64, error) {
 2.双向持仓模式下 reduceOnly 不接受此参数
 */
 func (g *GridStrategy) Trade(sideType futures.SideType, price, amount float64) (*futures.Order, error) {
+	if !g.buysell {
+		return nil, nil
+	}
+
 	service := g.client.NewCreateOrderService().
 		Symbol(g.Symbol).Quantity(fmt.Sprint(amount)).Side(sideType).Type(futures.OrderTypeMarket)
 	if price > 0 {
@@ -265,7 +272,8 @@ func (g *GridStrategy) Run() error {
 }
 
 func main() {
-	logger.Info("grid strategy start")
+	buysell := flag.Bool("doit", false, "doit")
+	flag.Parse()
 
 	grid := &GridStrategy{
 		client: futures.NewClient(ApiKey, SecretKey),
@@ -281,6 +289,11 @@ func main() {
 		WinRate:        0.015,
 		StopRate:       0.05,
 		NormalWaveRate: 0.003,
+
+		buysell: *buysell,
 	}
+
+	logger.Info("grid strategy start, doit:", grid.buysell)
+
 	grid.Run()
 }

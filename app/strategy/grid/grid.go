@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"time"
 
-	//"github.com/adshao/go-binance/v2/futures"
+	"github.com/adshao/go-binance/v2/futures"
 	"github.com/harveywangdao/ants/logger"
 )
 
@@ -413,11 +413,11 @@ func (g *GridStrategy) makeT(interval string) error {
 	if positionAmt > 0.0 {
 		logger.Infof("nowPrice-entryPrice=%f", nowPrice-entryPrice)
 		if nowPrice-entryPrice >= 0.0015 {
-			//g.Trade(futures.SideTypeSell, 0, positionAmt)
+			g.Trade(futures.SideTypeSell, 0, positionAmt)
 		}
 	} else {
 		if op == BUY {
-			//g.Trade(futures.SideTypeBuy, 0, g.GridPointAmount)
+			g.Trade(futures.SideTypeBuy, 0, g.GridPointAmount)
 		}
 	}
 	return nil
