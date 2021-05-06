@@ -45,6 +45,8 @@ type GridStrategy struct {
 	WinRate        float64
 	StopRate       float64
 	NormalWaveRate float64
+
+	trySellCount int
 }
 
 func (g *GridStrategy) OnTick() error {
@@ -52,47 +54,7 @@ func (g *GridStrategy) OnTick() error {
 		fmt.Println("\n")
 	}()
 
-	availableBalance, err := g.getAvailableBalance("USDT")
-	if err != nil {
-		logger.Error(err)
-		return err
-	}
-	position, err := g.Position()
-	if err != nil {
-		logger.Error(err)
-		return err
-	}
-	entryPrice, err := strconv.ParseFloat(position.EntryPrice, 64)
-	if err != nil {
-		logger.Error(err)
-		return err
-	}
-	positionAmt, err := strconv.ParseFloat(position.PositionAmt, 64)
-	if err != nil {
-		logger.Error(err)
-		return err
-	}
-	nowPrice, err := g.getNewestPrice()
-	if err != nil {
-		logger.Error(err)
-		return err
-	}
-	logger.Infof("availableBalance: %v, nowPrice: %v, entryPrice: %v, positionAmt: %v", availableBalance, nowPrice, entryPrice, positionAmt)
-
-	if nowPrice > entryPrice {
-		logger.Infof("盈利 %f USDT, 幅度:%f%%", (nowPrice-entryPrice)*positionAmt, 100.0*(nowPrice-entryPrice)/entryPrice)
-	} else {
-		logger.Infof("亏损 %f USDT, 跌幅:%f%%", (entryPrice-nowPrice)*positionAmt, 100.0*(entryPrice-nowPrice)/entryPrice)
-	}
-
-	// 止损
-	if entryPrice > nowPrice && (entryPrice-nowPrice)/entryPrice > g.StopRate {
-		logger.Infof("止损 (entryPrice-nowPrice)/entryPrice=%f, g.StopRate=%f", (entryPrice-nowPrice)/entryPrice, g.StopRate)
-		g.Trade(futures.SideTypeSell, 0, positionAmt)
-		return nil
-	}
-
-	g.KlineState2("1m")
+	g.makeT("1m")
 	return nil
 }
 

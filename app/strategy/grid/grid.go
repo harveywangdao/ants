@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/adshao/go-binance/v2/futures"
 	"github.com/harveywangdao/ants/logger"
 )
 
@@ -178,18 +179,16 @@ func (g *GridStrategy) KlineState(interval string, limit int) (Operate, error) {
 	return WAIT, nil
 }
 
-func (g *GridStrategy) KlineState2(interval string) (Operate, error) {
-	limit := 60
-
+func (g *GridStrategy) getKlines(interval string, limit int) ([]KlineData, error) {
 	// 1m 3m 5m 15m 30m 1h 2h 4h 6h 8h 12h 1d 3d 1w 1M
 	klines, err := g.client.NewKlinesService().Symbol(g.Symbol).Interval(interval).Limit(limit).Do(context.Background())
 	if err != nil {
 		logger.Error(err)
-		return WAIT, err
+		return nil, err
 	}
 	n := len(klines)
 	if n != limit {
-		return WAIT, fmt.Errorf("klines count error")
+		return nil, fmt.Errorf("klines count error")
 	}
 
 	rates := make([]KlineData, n)
@@ -197,22 +196,22 @@ func (g *GridStrategy) KlineState2(interval string) (Operate, error) {
 		openp, err := strconv.ParseFloat(klines[i].Open, 64)
 		if err != nil {
 			logger.Error(err)
-			return WAIT, err
+			return nil, err
 		}
 		closep, err := strconv.ParseFloat(klines[i].Close, 64)
 		if err != nil {
 			logger.Error(err)
-			return WAIT, err
+			return nil, err
 		}
 		highp, err := strconv.ParseFloat(klines[i].High, 64)
 		if err != nil {
 			logger.Error(err)
-			return WAIT, err
+			return nil, err
 		}
 		lowp, err := strconv.ParseFloat(klines[i].Low, 64)
 		if err != nil {
 			logger.Error(err)
-			return WAIT, err
+			return nil, err
 		}
 		rates[i].Rate = (closep - openp) / openp
 		rates[i].High = highp
@@ -224,12 +223,10 @@ func (g *GridStrategy) KlineState2(interval string) (Operate, error) {
 	}
 	//logger.Info("rates:", rates)
 
-	g.bottomtop1(rates)
-
-	return WAIT, nil
+	return rates, nil
 }
 
-func (g *GridStrategy) bottomtop1(klines []KlineData) {
+func (g *GridStrategy) bottomtop(klines []KlineData) Operate {
 	n := len(klines)
 
 	var hpoints []int
@@ -253,11 +250,9 @@ func (g *GridStrategy) bottomtop1(klines []KlineData) {
 		lpoints = append(lpoints, lpos)
 	}
 
-	//logger.Info(len(hpoints), hpoints)
-	//logger.Info(len(lpoints), lpoints)
-
 	if hpoints[0] == n {
 		logger.Info("突破新高")
+		return BUY
 	}
 	if hpoints[0] == n-1 {
 		logger.Info("突破新高,下降初期1")
@@ -316,9 +311,6 @@ func (g *GridStrategy) bottomtop1(klines []KlineData) {
 		lowpoints = append(lowpoints, point)
 	}
 
-	//logger.Info(len(highpoints), highpoints)
-	//logger.Info(len(lowpoints), lowpoints)
-
 	highIndex := -1
 	for i := 0; i < len(highpoints); i++ {
 		if highpoints[i] > highIndex {
@@ -345,25 +337,98 @@ func (g *GridStrategy) bottomtop1(klines []KlineData) {
 
 	if highIndex != -1 && lowIndex != -1 {
 		if highIndex >= lowIndex {
+			if highIndex-lowIndex <= 2 {
+				logger.Info("当前在震荡")
+			}
+
 			if highIndex == n {
 				logger.Info("当前是波峰")
 			} else {
 				logger.Info("当前是下降阶段")
 			}
-
-			if highIndex-lowIndex <= 2 {
+		} else {
+			if lowIndex-highIndex <= 2 {
 				logger.Info("当前在震荡")
 			}
-		} else {
+
 			if lowIndex == n {
 				logger.Info("当前是波谷")
 			} else {
 				logger.Info("当前是上升阶段")
-			}
-
-			if lowIndex-highIndex <= 2 {
-				logger.Info("当前在震荡")
+				return BUY
 			}
 		}
 	}
+	return SELL
+}
+
+func (g *GridStrategy) makeT(interval string) error {
+	limit := 60
+	rates, err := g.getKlines(interval, limit)
+	if err != nil {
+		return err
+	}
+	op := g.bottomtop(rates)
+
+	availableBalance, err := g.getAvailableBalance("USDT")
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+	position, err := g.Position()
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+	entryPrice, err := strconv.ParseFloat(position.EntryPrice, 64)
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+	positionAmt, err := strconv.ParseFloat(position.PositionAmt, 64)
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+	nowPrice, err := g.getNewestPrice()
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+	logger.Infof("availableBalance: %v, nowPrice: %v, entryPrice: %v, positionAmt: %v", availableBalance, nowPrice, entryPrice, positionAmt)
+
+	if nowPrice > entryPrice {
+		logger.Infof("盈利 %f USDT, 幅度:%f%%", (nowPrice-entryPrice)*positionAmt, 100.0*(nowPrice-entryPrice)/entryPrice)
+	} else {
+		logger.Infof("亏损 %f USDT, 跌幅:%f%%", (entryPrice-nowPrice)*positionAmt, 100.0*(entryPrice-nowPrice)/entryPrice)
+	}
+
+	// 止损
+	if entryPrice > nowPrice && (entryPrice-nowPrice)/entryPrice > g.StopRate {
+		logger.Infof("止损 (entryPrice-nowPrice)/entryPrice=%f, StopRate=%f", (entryPrice-nowPrice)/entryPrice, g.StopRate)
+		g.Trade(futures.SideTypeSell, 0, positionAmt)
+		g.trySellCount = 0
+		return nil
+	}
+
+	if positionAmt > 0.0 {
+		logger.Infof("nowPrice-entryPrice=%f, 尝试卖次数:%d", nowPrice-entryPrice, g.trySellCount)
+		if nowPrice-entryPrice >= 0.0015 {
+			g.Trade(futures.SideTypeSell, 0, positionAmt)
+		} else {
+			g.trySellCount++
+			if g.trySellCount >= 100 {
+				logger.Error("强制平仓")
+				g.Trade(futures.SideTypeSell, 0, positionAmt)
+				g.trySellCount = 0
+			}
+			return nil
+		}
+	} else {
+		if op == BUY {
+			g.Trade(futures.SideTypeBuy, 0, g.GridPointAmount)
+		}
+	}
+	g.trySellCount = 0
+	return nil
 }
