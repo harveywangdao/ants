@@ -45,8 +45,6 @@ type GridStrategy struct {
 	WinRate        float64
 	StopRate       float64
 	NormalWaveRate float64
-
-	trySellCount int
 }
 
 func (g *GridStrategy) OnTick() error {
