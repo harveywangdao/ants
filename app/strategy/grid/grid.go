@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/adshao/go-binance/v2/futures"
+	//"github.com/adshao/go-binance/v2/futures"
 	"github.com/harveywangdao/ants/logger"
 )
 
