@@ -406,7 +406,7 @@ func (g *GridStrategy) makeT(interval string) error {
 	// 止损
 	if entryPrice > nowPrice && (entryPrice-nowPrice)/entryPrice > g.StopRate {
 		logger.Infof("止损 (entryPrice-nowPrice)/entryPrice=%f, StopRate=%f", (entryPrice-nowPrice)/entryPrice, g.StopRate)
-		g.Trade(futures.SideTypeSell, 0, positionAmt)
+		//g.Trade(futures.SideTypeSell, 0, positionAmt)
 		g.trySellCount = 0
 		return nil
 	}
@@ -414,19 +414,19 @@ func (g *GridStrategy) makeT(interval string) error {
 	if positionAmt > 0.0 {
 		logger.Infof("nowPrice-entryPrice=%f, 尝试卖次数:%d", nowPrice-entryPrice, g.trySellCount)
 		if nowPrice-entryPrice >= 0.0015 {
-			g.Trade(futures.SideTypeSell, 0, positionAmt)
+			//g.Trade(futures.SideTypeSell, 0, positionAmt)
 		} else {
 			g.trySellCount++
 			if g.trySellCount >= 100 {
 				logger.Error("强制平仓")
-				g.Trade(futures.SideTypeSell, 0, positionAmt)
+				//g.Trade(futures.SideTypeSell, 0, positionAmt)
 				g.trySellCount = 0
 			}
 			return nil
 		}
 	} else {
 		if op == BUY {
-			g.Trade(futures.SideTypeBuy, 0, g.GridPointAmount)
+			//g.Trade(futures.SideTypeBuy, 0, g.GridPointAmount)
 		}
 	}
 	g.trySellCount = 0
