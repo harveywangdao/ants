@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"math"
 	"strconv"
@@ -179,9 +180,9 @@ func (g *GridStrategy) KlineState(interval string, limit int) (Operate, error) {
 	return WAIT, nil
 }
 
-func (g *GridStrategy) getKlines(interval string, limit int) ([]KlineData, error) {
+func (g *GridStrategy) getKlines(symbol, interval string, limit int) ([]KlineData, error) {
 	// 1m 3m 5m 15m 30m 1h 2h 4h 6h 8h 12h 1d 3d 1w 1M
-	klines, err := g.client.NewKlinesService().Symbol(g.Symbol).Interval(interval).Limit(limit).Do(context.Background())
+	klines, err := g.client.NewKlinesService().Symbol(symbol).Interval(interval).Limit(limit).Do(context.Background())
 	if err != nil {
 		logger.Error(err)
 		return nil, err
@@ -364,7 +365,7 @@ func (g *GridStrategy) bottomtop(klines []KlineData) Operate {
 
 func (g *GridStrategy) makeT(interval string) error {
 	limit := 60
-	rates, err := g.getKlines(interval, limit)
+	rates, err := g.getKlines(g.Symbol, interval, limit)
 	if err != nil {
 		return err
 	}
@@ -420,5 +421,19 @@ func (g *GridStrategy) makeT(interval string) error {
 			g.Trade(futures.SideTypeBuy, 0, g.GridPointAmount)
 		}
 	}
+	return nil
+}
+
+func (g *GridStrategy) monitorAllSymbol() error {
+	exchangeInfo, err := g.client.NewExchangeInfoService().Do(context.Background())
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+
+	data, _ := json.Marshal(exchangeInfo)
+
+	logger.Info("exchangeInfo:", string(data))
+
 	return nil
 }
