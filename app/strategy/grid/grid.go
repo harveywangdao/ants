@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"encoding/json"
+	//"encoding/json"
 	"fmt"
 	"math"
 	"strconv"
@@ -229,6 +229,9 @@ func (g *GridStrategy) getKlines(symbol, interval string, limit int) ([]KlineDat
 
 func (g *GridStrategy) bottomtop(klines []KlineData) Operate {
 	n := len(klines)
+	if n == 0 {
+		return WAIT
+	}
 
 	var hpoints []int
 	var lpoints []int
@@ -267,6 +270,7 @@ func (g *GridStrategy) bottomtop(klines []KlineData) Operate {
 
 	if lpoints[0] == n {
 		logger.Info("突破新低")
+		return SELL
 	}
 	if lpoints[0] == n-1 {
 		logger.Info("突破新低,上升初期1")
@@ -356,17 +360,17 @@ func (g *GridStrategy) bottomtop(klines []KlineData) Operate {
 				logger.Info("当前是波谷")
 			} else {
 				logger.Info("当前是上升阶段")
-				return BUY
 			}
 		}
 	}
-	return SELL
+	return WAIT
 }
 
 func (g *GridStrategy) makeT(interval string) error {
 	limit := 60
 	rates, err := g.getKlines(g.Symbol, interval, limit)
 	if err != nil {
+		logger.Error(err)
 		return err
 	}
 	op := g.bottomtop(rates)
@@ -431,9 +435,71 @@ func (g *GridStrategy) monitorAllSymbol() error {
 		return err
 	}
 
-	data, _ := json.Marshal(exchangeInfo)
+	var bestSymbols []string
+	var sadSymbols []string
+	logger.Info("symbol nums:", len(exchangeInfo.Symbols))
+	for i := 0; i < len(exchangeInfo.Symbols); i++ {
+		logger.Info(exchangeInfo.Symbols[i].Symbol)
+		// 1m 3m 5m 15m 30m 1h 2h 4h 6h 8h 12h 1d 3d 1w 1M
+		logger.Info("1m")
+		rates, err := g.getKlines(exchangeInfo.Symbols[i].Symbol, "1m", 30)
+		if err != nil {
+			logger.Error(err)
+			continue
+		}
+		op1m := g.bottomtop(rates)
 
-	logger.Info("exchangeInfo:", string(data))
+		logger.Info("5m")
+		rates, err = g.getKlines(exchangeInfo.Symbols[i].Symbol, "5m", 30)
+		if err != nil {
+			logger.Error(err)
+			continue
+		}
+		op5m := g.bottomtop(rates)
+
+		logger.Info("15m")
+		rates, err = g.getKlines(exchangeInfo.Symbols[i].Symbol, "15m", 30)
+		if err != nil {
+			logger.Error(err)
+			continue
+		}
+		op15m := g.bottomtop(rates)
+
+		logger.Info("30m")
+		rates, err = g.getKlines(exchangeInfo.Symbols[i].Symbol, "30m", 30)
+		if err != nil {
+			logger.Error(err)
+			continue
+		}
+		op30m := g.bottomtop(rates)
+
+		logger.Info("1h")
+		rates, err = g.getKlines(exchangeInfo.Symbols[i].Symbol, "1h", 30)
+		if err != nil {
+			logger.Error(err)
+			continue
+		}
+		op1h := g.bottomtop(rates)
+
+		logger.Info("1d")
+		rates, err = g.getKlines(exchangeInfo.Symbols[i].Symbol, "1d", 20)
+		if err != nil {
+			logger.Error(err)
+			continue
+		}
+		op1d := g.bottomtop(rates)
+
+		if op1m == BUY && op5m == BUY && op15m == BUY && op30m == BUY && op1h == BUY && op1d == BUY {
+			bestSymbols = append(bestSymbols, exchangeInfo.Symbols[i].Symbol)
+		}
+
+		if op1m == SELL && op5m == SELL && op15m == SELL && op30m == SELL && op1h == SELL && op1d == SELL {
+			sadSymbols = append(sadSymbols, exchangeInfo.Symbols[i].Symbol)
+		}
+	}
+
+	logger.Info("buy long:", bestSymbols)
+	logger.Info("sell short:", sadSymbols)
 
 	return nil
 }

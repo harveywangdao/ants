@@ -55,7 +55,9 @@ func (g *GridStrategy) OnTick() error {
 		fmt.Println("\n")
 	}()
 
-	g.makeT("1m")
+	g.monitorAllSymbol()
+
+	//g.makeT("1m")
 	return nil
 }
 
@@ -259,7 +261,7 @@ func (g *GridStrategy) Position() (*futures.AccountPosition, error) {
 
 func (g *GridStrategy) Run() error {
 	g.OnTick()
-	tk := time.NewTicker(5 * time.Second)
+	tk := time.NewTicker(180 * time.Second)
 	defer tk.Stop()
 
 	for {
