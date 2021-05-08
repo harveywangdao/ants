@@ -450,64 +450,25 @@ func (g *GridStrategy) monitorAllSymbol() error {
 		}
 		op1m := g.bottomtop(rates)
 
-		/*		logger.Info("5m")
-				rates, err = g.getKlines(exchangeInfo.Symbols[i].Symbol, "5m", 30)
-				if err != nil {
-					logger.Error(err)
-					continue
-				}
-				op5m := g.bottomtop(rates)*/
-
 		logger.Info("15m")
-		rates, err = g.getKlines(exchangeInfo.Symbols[i].Symbol, "15m", 10)
+		rates, err = g.getKlines(exchangeInfo.Symbols[i].Symbol, "15m", 24)
 		if err != nil {
 			logger.Error(err)
 			continue
 		}
 		op15m := g.bottomtop(rates)
 
-		/*logger.Info("30m")
-		rates, err = g.getKlines(exchangeInfo.Symbols[i].Symbol, "30m", 30)
-		if err != nil {
-			logger.Error(err)
-			continue
-		}
-		op30m := g.bottomtop(rates)*/
-
-		logger.Info("1h")
-		rates, err = g.getKlines(exchangeInfo.Symbols[i].Symbol, "1h", 24)
-		if err != nil {
-			logger.Error(err)
-			continue
-		}
-		op1h := g.bottomtop(rates)
-
-		logger.Info("1d")
-		rates, err = g.getKlines(exchangeInfo.Symbols[i].Symbol, "1d", 10)
-		if err != nil {
-			logger.Error(err)
-			continue
-		}
-		op1d := g.bottomtop(rates)
-
-		if op1m == BUY && op15m == BUY && op1h == BUY && op1d == BUY {
+		if op1m == BUY && op15m == BUY {
 			bestSymbols = append(bestSymbols, exchangeInfo.Symbols[i].Symbol)
 		}
 
-		if op1m == SELL && op15m == SELL && op1h == SELL && op1d == SELL {
+		if op1m == SELL && op15m == SELL {
 			sadSymbols = append(sadSymbols, exchangeInfo.Symbols[i].Symbol)
 		}
 	}
 
 	logger.Info("buy long:", bestSymbols)
 	logger.Info("sell short:", sadSymbols)
-
-	if len(bestSymbols) > 0 {
-		logger.Fatal("bestSymbols")
-	}
-	if len(sadSymbols) > 0 {
-		logger.Fatal("sadSymbols")
-	}
 
 	return nil
 }
