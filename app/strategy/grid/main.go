@@ -55,7 +55,83 @@ func (g *GridStrategy) OnTick() error {
 		fmt.Println("\n")
 	}()
 
-	g.monitorAllSymbol()
+	availableBalance, err := g.getAvailableBalance("USDT")
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+	long, short, err := g.Position2()
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+	nowPrice, err := g.getNewestPrice()
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+	logger.Infof("availableBalance: %v, nowPrice: %v", availableBalance, nowPrice)
+
+	if long != nil {
+		entryPrice, err := strconv.ParseFloat(long.EntryPrice, 64)
+		if err != nil {
+			logger.Error(err)
+			return err
+		}
+		positionAmt, err := strconv.ParseFloat(long.PositionAmt, 64)
+		if err != nil {
+			logger.Error(err)
+			return err
+		}
+
+		logger.Infof("做多: entryPrice: %v, positionAmt: %v", entryPrice, positionAmt)
+		if nowPrice > entryPrice {
+			logger.Infof("做多: 盈利 %f USDT, 幅度:%f%%", (nowPrice-entryPrice)*positionAmt, 100.0*(nowPrice-entryPrice)/entryPrice)
+		} else {
+			logger.Infof("做多: 亏损 %f USDT, 幅度:%f%%", (entryPrice-nowPrice)*positionAmt, 100.0*(entryPrice-nowPrice)/entryPrice)
+		}
+	}
+
+	if short != nil {
+		entryPrice, err := strconv.ParseFloat(short.EntryPrice, 64)
+		if err != nil {
+			logger.Error(err)
+			return err
+		}
+		positionAmt, err := strconv.ParseFloat(short.PositionAmt, 64)
+		if err != nil {
+			logger.Error(err)
+			return err
+		}
+
+		logger.Infof("做空: entryPrice: %v, positionAmt: %v", entryPrice, positionAmt)
+		if nowPrice > entryPrice {
+			logger.Infof("做空: 亏损 %f USDT, 幅度:%f%%", (nowPrice-entryPrice)*positionAmt, 100.0*(nowPrice-entryPrice)/entryPrice)
+		} else {
+			logger.Infof("做空: 盈利 %f USDT, 幅度:%f%%", (entryPrice-nowPrice)*positionAmt, 100.0*(entryPrice-nowPrice)/entryPrice)
+		}
+	}
+
+	trades, err := g.client.NewListAccountTradeService().Symbol(g.Symbol).Limit(60).Do(context.Background())
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+	for i := 0; i < len(trades); i++ {
+		fmt.Println("OrderID:", trades[i].OrderID)
+		fmt.Println("Symbol:", trades[i].Symbol)
+		fmt.Println("Side:", trades[i].Side)
+		fmt.Println("PositionSide:", trades[i].PositionSide)
+		fmt.Println("Price:", trades[i].Price)
+		fmt.Println("Quantity:", trades[i].Quantity)
+		fmt.Println("Commission:", trades[i].Commission)
+		fmt.Println("Time:", time.Unix(trades[i].Time/1000, 0))
+
+		fmt.Println("\n")
+	}
+	log.Fatal("exit")
+
+	//g.monitorAllSymbol()
 
 	//g.makeT("1m")
 	return nil
@@ -257,6 +333,29 @@ func (g *GridStrategy) Position() (*futures.AccountPosition, error) {
 		}
 	}
 	return nil, fmt.Errorf("not existed")
+}
+
+func (g *GridStrategy) Position2() (*futures.AccountPosition, *futures.AccountPosition, error) {
+	account, err := g.client.NewGetAccountService().Do(context.Background())
+	if err != nil {
+		logger.Error(err)
+		return nil, nil, err
+	}
+
+	var long, short *futures.AccountPosition
+	for i := 0; i < len(account.Positions); i++ {
+		if account.Positions[i].Symbol == g.Symbol {
+			if account.Positions[i].PositionSide == futures.PositionSideType("LONG") {
+				long = account.Positions[i]
+			} else if account.Positions[i].PositionSide == futures.PositionSideType("SHORT") {
+				short = account.Positions[i]
+			}
+			if long != nil && short != nil {
+				break
+			}
+		}
+	}
+	return long, short, nil
 }
 
 func (g *GridStrategy) Run() error {
