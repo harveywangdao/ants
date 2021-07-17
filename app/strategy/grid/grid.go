@@ -472,3 +472,67 @@ func (g *GridStrategy) monitorAllSymbol() error {
 
 	return nil
 }
+
+func (g *GridStrategy) Minute1Buy() error {
+	// 1m 3m 5m 15m 30m 1h 2h 4h 6h 8h 12h 1d 3d 1w 1M
+	klines, err := g.client.NewKlinesService().Symbol(g.Symbol).Interval("1m").Limit(6).Do(context.Background())
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+	n := len(klines)
+	if n != 6 {
+		return fmt.Errorf("klines count error")
+	}
+
+	rates := make([]KlineData, n)
+	for i := 0; i < n; i++ {
+		logger.Infof("%#v", klines[i])
+		openp, err := strconv.ParseFloat(klines[i].Open, 64)
+		if err != nil {
+			logger.Error(err)
+			return err
+		}
+		closep, err := strconv.ParseFloat(klines[i].Close, 64)
+		if err != nil {
+			logger.Error(err)
+			return err
+		}
+		rates[i].Rate = (closep - openp) / openp
+		rates[i].Open = openp
+		rates[i].Close = closep
+	}
+	logger.Info(rates)
+
+	if (rates[3].Close-rates[0].Open)/rates[0].Open < -0.01 && rates[4].Rate > -g.NormalWaveRate {
+		return nil
+	}
+
+	down := 0
+	for i := 0; i < n-2; i++ {
+		if rates[i].Rate < 0 {
+			down++
+			continue
+		}
+		if rates[i].Rate > g.NormalWaveRate {
+			logger.Errorf("rate > NormalWaveRate, rate: %f, NormalWaveRate: %f", rates[i].Rate, g.NormalWaveRate)
+			return fmt.Errorf("not buy point")
+		}
+	}
+	if down <= 2 {
+		logger.Error("down count <= 2, down:", down)
+		return fmt.Errorf("not buy point")
+	}
+
+	if rates[n-2].Rate < -g.NormalWaveRate {
+		logger.Errorf("last two rate < -NormalWaveRate, rate: %f, NormalWaveRate: %f", rates[n-2].Rate, -g.NormalWaveRate)
+		return fmt.Errorf("not buy point")
+	}
+
+	if rates[n-1].Rate < -g.NormalWaveRate*5 {
+		logger.Errorf("last one rate < -NormalWaveRate*5, rate: %f, NormalWaveRate: %f", rates[n-1].Rate, -g.NormalWaveRate*5)
+		return fmt.Errorf("not buy point")
+	}
+
+	return nil
+}
