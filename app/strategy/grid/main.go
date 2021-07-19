@@ -807,6 +807,8 @@ func (g *GridStrategy) RunTask() error {
 			g.DoShort()
 		} else if g.PositionSide == "HEDGE" {
 			g.Hedge()
+		} else {
+			g.GetOpenOrders()
 		}
 		time.Sleep(time.Second * 60)
 	}
