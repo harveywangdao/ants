@@ -5,8 +5,10 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"math"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/adshao/go-binance/v2/futures"
@@ -24,10 +26,46 @@ const (
 	SecretKey = "TLo3hxjoGCVHBCyq6GUOA7QyoWCrV35VUOZaybVlVPfsHpJy6T2AkjlnH8mdFlJr"
 )
 
-type GridStrategy struct {
-	client *futures.Client
+type Operate int
 
-	Symbol string
+func (o Operate) String() string {
+	if o == WAIT {
+		return "WAIT"
+	} else if o == BUY {
+		return "BUY"
+	} else if o == SELL {
+		return "SELL"
+	} else {
+		return "WAIT"
+	}
+}
+
+const (
+	WAIT Operate = iota
+	BUY
+	SELL
+)
+
+type GridStrategy struct {
+	client       *futures.Client
+	Symbol       string
+	PositionSide string
+	LongTrades   sync.Map
+	ShortTrades  sync.Map
+
+	HedgeLong  float64
+	HedgeShort float64
+}
+
+type KlineData struct {
+	Open  float64
+	Close float64
+	High  float64
+	Low   float64
+	Rate  float64
+
+	OpenTime  time.Time
+	CloseTime time.Time
 }
 
 func (g *GridStrategy) GetDepth() error {
@@ -253,11 +291,22 @@ func (g *GridStrategy) GetAccountInfo() error {
 			logger.Infof("做空: 盈利 %f USDT, 幅度:%f%%", (nowPrice-entryPrice)*positionAmt, 100.0*(entryPrice-nowPrice)/entryPrice)
 		}
 	}
+	fmt.Println()
+	return nil
+}
+
+func (g *GridStrategy) CancelOrder(symbol string, orderId int64) error {
+	ret, err := g.client.NewCancelOrderService().Symbol(symbol).OrderID(orderId).Do(context.Background())
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+	fmt.Printf("%+v\n", *ret)
 	return nil
 }
 
 func (g *GridStrategy) GetTrades() error {
-	trades, err := g.client.NewListAccountTradeService().Symbol(g.Symbol).Limit(20).Do(context.Background())
+	trades, err := g.client.NewListAccountTradeService().Symbol(g.Symbol).Limit(10).Do(context.Background())
 	if err != nil {
 		logger.Error(err)
 		return err
@@ -278,15 +327,18 @@ func (g *GridStrategy) GetTrades() error {
 	return nil
 }
 
-func (g *GridStrategy) GetOpenOrders() error {
+func (g *GridStrategy) GetOpenOrders() (map[int64]*futures.Order, error) {
 	trades, err := g.client.NewListOpenOrdersService().Symbol(g.Symbol).Do(context.Background())
 	if err != nil {
 		logger.Error(err)
-		return err
+		return nil, err
 	}
 
+	m := make(map[int64]*futures.Order)
 	fmt.Println("当前挂单:", len(trades))
 	for i := 0; i < len(trades); i++ {
+		m[trades[i].OrderID] = trades[i]
+
 		fmt.Println("OrderID:", trades[i].OrderID)
 		fmt.Println("Symbol:", trades[i].Symbol)
 		fmt.Println("PositionSide:", trades[i].PositionSide)
@@ -297,29 +349,467 @@ func (g *GridStrategy) GetOpenOrders() error {
 		fmt.Println("Type:", trades[i].Type)
 		fmt.Println("WorkingType:", trades[i].WorkingType)
 		fmt.Println("Time:", time.Unix(trades[i].Time/1000, 0))
-
 		fmt.Println("\n")
 	}
+	return m, nil
+}
+
+func (g *GridStrategy) GetKlines(symbol, interval string, limit int) ([]KlineData, error) {
+	// 1m 3m 5m 15m 30m 1h 2h 4h 6h 8h 12h 1d 3d 1w 1M
+	klines, err := g.client.NewKlinesService().Symbol(symbol).Interval(interval).Limit(limit).Do(context.Background())
+	if err != nil {
+		logger.Error(err)
+		return nil, err
+	}
+	n := len(klines)
+	if n != limit {
+		return nil, fmt.Errorf("klines count error")
+	}
+
+	rates := make([]KlineData, n)
+	for i := 0; i < n; i++ {
+		openp, err := strconv.ParseFloat(klines[i].Open, 64)
+		if err != nil {
+			logger.Error(err)
+			return nil, err
+		}
+		closep, err := strconv.ParseFloat(klines[i].Close, 64)
+		if err != nil {
+			logger.Error(err)
+			return nil, err
+		}
+		highp, err := strconv.ParseFloat(klines[i].High, 64)
+		if err != nil {
+			logger.Error(err)
+			return nil, err
+		}
+		lowp, err := strconv.ParseFloat(klines[i].Low, 64)
+		if err != nil {
+			logger.Error(err)
+			return nil, err
+		}
+		rates[i].Rate = (closep - openp) / openp
+		rates[i].High = highp
+		rates[i].Low = lowp
+		rates[i].Open = openp
+		rates[i].Close = closep
+		rates[i].OpenTime = time.Unix(klines[i].OpenTime/1000, 0)   //秒
+		rates[i].CloseTime = time.Unix(klines[i].CloseTime/1000, 0) //秒
+	}
+
+	return rates, nil
+}
+
+func (g *GridStrategy) bottomtop(klines []KlineData) Operate {
+	n := len(klines)
+	if n == 0 {
+		return WAIT
+	}
+
+	var hpoints []int
+	var lpoints []int
+	for start := 0; start < n-1; start++ {
+		highest, lowest := 0.0, math.MaxFloat64
+		var hpos, lpos int
+
+		for i := start; i < n; i++ {
+			if klines[i].High > highest {
+				highest = klines[i].High
+				hpos = i + 1
+			}
+			if klines[i].Low < lowest {
+				lowest = klines[i].Low
+				lpos = i + 1
+			}
+		}
+
+		hpoints = append(hpoints, hpos)
+		lpoints = append(lpoints, lpos)
+	}
+
+	if hpoints[0] == n {
+		logger.Info("突破新高")
+		return SELL
+	}
+	if hpoints[0] == n-1 {
+		logger.Info("突破新高,下降初期1")
+		return SELL
+	}
+	if hpoints[0] == n-2 {
+		logger.Info("突破新高,下降初期2")
+	}
+	if hpoints[0] == n-3 {
+		logger.Info("突破新高,下降初期3")
+	}
+
+	if lpoints[0] == n {
+		logger.Info("突破新低")
+		return BUY
+	}
+	if lpoints[0] == n-1 {
+		logger.Info("突破新低,上升初期1")
+		return BUY
+	}
+	if lpoints[0] == n-2 {
+		logger.Info("突破新低,上升初期2")
+	}
+	if lpoints[0] == n-3 {
+		logger.Info("突破新低,上升初期3")
+	}
+
+	var highpoints []int
+	point := -1
+	repeat := 0
+	for i := 0; i < len(hpoints); i++ {
+		if point != hpoints[i] {
+			if repeat >= 5 {
+				highpoints = append(highpoints, point)
+			}
+			repeat = 0
+		}
+		point = hpoints[i]
+		repeat++
+	}
+	if repeat >= 5 {
+		highpoints = append(highpoints, point)
+	}
+
+	var lowpoints []int
+	point = -1
+	repeat = 0
+	for i := 0; i < len(lpoints); i++ {
+		if point != lpoints[i] {
+			if repeat >= 5 {
+				lowpoints = append(lowpoints, point)
+			}
+			repeat = 0
+		}
+		point = lpoints[i]
+		repeat++
+	}
+	if repeat >= 5 {
+		lowpoints = append(lowpoints, point)
+	}
+
+	highIndex := -1
+	for i := 0; i < len(highpoints); i++ {
+		if highpoints[i] > highIndex {
+			highIndex = highpoints[i]
+		}
+	}
+	if highIndex != -1 {
+		logger.Infof("最近的波峰,price: %f, 倒数第%d个", klines[highIndex-1].High, n-highIndex+1)
+	} else {
+		logger.Info("无波峰,当前可能在波动")
+	}
+
+	lowIndex := -1
+	for i := 0; i < len(lowpoints); i++ {
+		if lowpoints[i] > lowIndex {
+			lowIndex = lowpoints[i]
+		}
+	}
+	if lowIndex != -1 {
+		logger.Infof("最近的波谷,price: %f, 倒数第%d个", klines[lowIndex-1].Low, n-lowIndex+1)
+	} else {
+		logger.Info("无波谷,当前可能在波动")
+	}
+
+	if highIndex != -1 && lowIndex != -1 {
+		if highIndex >= lowIndex {
+			if highIndex-lowIndex <= 2 {
+				logger.Info("当前在震荡")
+			}
+
+			if highIndex == n {
+				logger.Info("当前是波峰")
+			} else if highIndex == n-1 {
+				logger.Info("当前是波峰,刚开始下降")
+				return SELL
+			} else {
+				logger.Info("当前是下降阶段")
+			}
+		} else {
+			if lowIndex-highIndex <= 2 {
+				logger.Info("当前在震荡")
+			}
+
+			if lowIndex == n {
+				logger.Info("当前是波谷")
+			} else if lowIndex == n-1 {
+				logger.Info("当前是波谷,刚开始上升")
+				return BUY
+			} else {
+				logger.Info("当前是上升阶段")
+			}
+		}
+	}
+	return WAIT
+}
+
+type TradeInfo struct {
+	Type string
+
+	OpenPrice   float64
+	OpenAmount  float64
+	OpenTime    time.Time
+	OpenOrderId int64
+
+	ClosePrice   float64
+	CloseAmount  float64
+	CloseTime    time.Time
+	CloseOrderId int64
+}
+
+func (g *GridStrategy) DoLong() error {
+	openOrders, err := g.GetOpenOrders()
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+
+	minOpenPrice := 0.0
+	remainCount := 0
+	g.LongTrades.Range(func(key, value interface{}) bool {
+		orderId := key.(int64)
+		_, ok := openOrders[orderId]
+		if !ok {
+			g.LongTrades.Delete(orderId)
+		} else {
+			remainCount++
+
+			in := value.(*TradeInfo)
+			if in.OpenPrice < minOpenPrice {
+				minOpenPrice = in.OpenPrice
+			}
+		}
+		return true
+	})
+
+	fmt.Println("剩余未完成交易:", remainCount)
+	g.LongTrades.Range(func(key, value interface{}) bool {
+		fmt.Printf("%+v\n\n", value)
+		return true
+	})
+
+	interval := "1m"
+	limit := 30
+	rates, err := g.GetKlines(g.Symbol, interval, limit)
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+	op := g.bottomtop(rates)
+	logger.Info("op:", op)
+
+	nowPrice, err := g.GetNewestPrice()
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+
+	if op == BUY && remainCount < 10 && minOpenPrice-0.0005 >= nowPrice {
+		chunk := 30.0
+		order, err := g.Trade(futures.SideTypeBuy, 0, chunk, futures.PositionSideTypeLong)
+		if err != nil {
+			logger.Error(err)
+			return err
+		}
+		price, err := strconv.ParseFloat(order.AvgPrice, 64)
+		if err != nil {
+			logger.Error(err)
+			return err
+		}
+		amount, err := strconv.ParseFloat(order.ExecutedQuantity, 64)
+		if err != nil {
+			logger.Error(err)
+			return err
+		}
+
+		ti := &TradeInfo{
+			Type:        string(order.PositionSide),
+			OpenPrice:   price,
+			OpenAmount:  amount,
+			OpenTime:    time.Unix(order.Time/1000, 0),
+			OpenOrderId: order.OrderID,
+
+			ClosePrice:  price + 0.002,
+			CloseAmount: amount,
+		}
+
+		limitOrder, err := g.TradeLimit(futures.SideTypeSell, ti.ClosePrice, ti.CloseAmount, futures.PositionSideTypeLong)
+		if err != nil {
+			logger.Error(err)
+			return err
+		}
+		ti.CloseOrderId = limitOrder.OrderID
+
+		g.LongTrades.Store(ti.CloseOrderId, ti)
+	}
+
+	return nil
+}
+
+func (g *GridStrategy) DoShort() error {
+	openOrders, err := g.GetOpenOrders()
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+
+	maxOpenPrice := 0.0
+	remainCount := 0
+	g.ShortTrades.Range(func(key, value interface{}) bool {
+		orderId := key.(int64)
+		_, ok := openOrders[orderId]
+		if !ok {
+			g.ShortTrades.Delete(orderId)
+		} else {
+			remainCount++
+
+			in := value.(*TradeInfo)
+			if in.OpenPrice > maxOpenPrice {
+				maxOpenPrice = in.OpenPrice
+			}
+		}
+		return true
+	})
+
+	fmt.Println("剩余未完成交易:", remainCount)
+	g.ShortTrades.Range(func(key, value interface{}) bool {
+		fmt.Printf("%+v\n\n", value)
+		return true
+	})
+
+	interval := "1m"
+	limit := 30
+	rates, err := g.GetKlines(g.Symbol, interval, limit)
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+	op := g.bottomtop(rates)
+	logger.Info("op:", op)
+
+	nowPrice, err := g.GetNewestPrice()
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+
+	if op == SELL && remainCount < 10 && maxOpenPrice+0.0005 <= nowPrice {
+		chunk := 30.0
+		order, err := g.Trade(futures.SideTypeSell, 0, chunk, futures.PositionSideTypeShort)
+		if err != nil {
+			logger.Error(err)
+			return err
+		}
+		price, err := strconv.ParseFloat(order.AvgPrice, 64)
+		if err != nil {
+			logger.Error(err)
+			return err
+		}
+		amount, err := strconv.ParseFloat(order.ExecutedQuantity, 64)
+		if err != nil {
+			logger.Error(err)
+			return err
+		}
+
+		ti := &TradeInfo{
+			Type:        string(order.PositionSide),
+			OpenPrice:   price,
+			OpenAmount:  amount,
+			OpenTime:    time.Unix(order.Time/1000, 0),
+			OpenOrderId: order.OrderID,
+
+			ClosePrice:  price - 0.002,
+			CloseAmount: amount,
+		}
+
+		limitOrder, err := g.TradeLimit(futures.SideTypeBuy, ti.ClosePrice, ti.CloseAmount, futures.PositionSideTypeShort)
+		if err != nil {
+			logger.Error(err)
+			return err
+		}
+		ti.CloseOrderId = limitOrder.OrderID
+
+		g.ShortTrades.Store(ti.CloseOrderId, ti)
+	}
+
+	return nil
+}
+
+func (g *GridStrategy) Hedge() error {
+	interval := "1m"
+	limit := 30
+	rates, err := g.GetKlines(g.Symbol, interval, limit)
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+	op := g.bottomtop(rates)
+	logger.Info("op:", op)
+
+	chunk := 30.0
+	if op == SELL {
+		if g.HedgeLong >= chunk && g.HedgeLong >= g.HedgeShort {
+			_, err := g.Trade(futures.SideTypeSell, 0, chunk, futures.PositionSideTypeLong)
+			if err != nil {
+				logger.Error(err)
+				return err
+			}
+			g.HedgeLong -= chunk
+		}
+
+		if g.HedgeShort <= g.HedgeLong && g.HedgeShort < 5*chunk {
+			_, err = g.Trade(futures.SideTypeSell, 0, chunk, futures.PositionSideTypeShort)
+			if err != nil {
+				logger.Error(err)
+				return err
+			}
+			g.HedgeShort += chunk
+		}
+	} else if op == BUY {
+		if g.HedgeShort >= g.HedgeLong && g.HedgeLong < 5*chunk {
+			_, err := g.Trade(futures.SideTypeBuy, 0, chunk, futures.PositionSideTypeLong)
+			if err != nil {
+				logger.Error(err)
+				return err
+			}
+			g.HedgeLong += chunk
+		}
+
+		if g.HedgeShort >= chunk && g.HedgeLong <= g.HedgeShort {
+			_, err = g.Trade(futures.SideTypeBuy, 0, chunk, futures.PositionSideTypeShort)
+			if err != nil {
+				logger.Error(err)
+				return err
+			}
+			g.HedgeShort -= chunk
+		}
+	}
+
+	fmt.Println("做多数量:", g.HedgeLong)
+	fmt.Println("做空数量:", g.HedgeShort)
 	return nil
 }
 
 func (g *GridStrategy) RunTask() error {
 	for {
 		g.GetTrades()
-		g.GetOpenOrders()
 		g.GetAccountInfo()
-		time.Sleep(time.Second * 10)
+		if g.PositionSide == "LONG" {
+			g.DoLong()
+		} else if g.PositionSide == "SHORT" {
+			g.DoShort()
+		} else if g.PositionSide == "BOTH" {
+			g.DoLong()
+			g.DoShort()
+		} else if g.PositionSide == "HEDGE" {
+			g.Hedge()
+		}
+		time.Sleep(time.Second * 60)
 	}
-	return nil
-}
-
-func (g *GridStrategy) CancelOrder(symbol string, orderId int64) error {
-	ret, err := g.client.NewCancelOrderService().Symbol(symbol).OrderID(orderId).Do(context.Background())
-	if err != nil {
-		logger.Error(err)
-		return err
-	}
-	fmt.Printf("%+v\n", *ret)
 	return nil
 }
 
@@ -328,7 +818,7 @@ func main() {
 	orderId := flag.Int64("orderId", 0, "orderId")
 	action := flag.String("action", "", "action")
 
-	positionSide := flag.String("positionSide", "LONG", "positionSide")
+	positionSide := flag.String("positionSide", "", "positionSide")
 	sideType := flag.String("sideType", "BUY", "sideType")
 	price := flag.Float64("price", 0.0, "price")
 	amount := flag.Float64("amount", 0.0, "amount")
@@ -336,8 +826,9 @@ func main() {
 	flag.Parse()
 
 	grid := &GridStrategy{
-		client: futures.NewClient(ApiKey, SecretKey),
-		Symbol: *symbol,
+		client:       futures.NewClient(ApiKey, SecretKey),
+		Symbol:       *symbol,
+		PositionSide: *positionSide,
 	}
 
 	if *action == "cancel" {
