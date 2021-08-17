@@ -493,6 +493,7 @@ func (g *GridStrategy) bottomtop(klines []KlineData) Operate {
 
 	highIndex := -1
 	for i := 0; i < len(highpoints); i++ {
+		logger.Infof("波峰,price: %f, 倒数第%d个", klines[highpoints[i]-1].High, n-highpoints[i]+1)
 		if highpoints[i] > highIndex {
 			highIndex = highpoints[i]
 		}
@@ -505,6 +506,7 @@ func (g *GridStrategy) bottomtop(klines []KlineData) Operate {
 
 	lowIndex := -1
 	for i := 0; i < len(lowpoints); i++ {
+		logger.Infof("波谷,price: %f, 倒数第%d个", klines[lowpoints[i]-1].Low, n-lowpoints[i]+1)
 		if lowpoints[i] > lowIndex {
 			lowIndex = lowpoints[i]
 		}
@@ -808,9 +810,19 @@ func (g *GridStrategy) RunTask() error {
 		} else if g.PositionSide == "HEDGE" {
 			g.Hedge()
 		} else {
+			interval := "1m"
+			limit := 30
+			rates, err := g.GetKlines(g.Symbol, interval, limit)
+			if err != nil {
+				logger.Error(err)
+				return err
+			}
+			op := g.bottomtop(rates)
+			logger.Info("op:", op)
+			fmt.Println()
 			g.GetOpenOrders()
 		}
-		time.Sleep(time.Second * 60)
+		time.Sleep(time.Second * 20)
 	}
 	return nil
 }
