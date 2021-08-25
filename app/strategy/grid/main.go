@@ -45,10 +45,12 @@ type GridStrategy struct {
 	profit        float64
 	intervalPrice float64
 
-	chunk     float64
-	maxAmount float64
-	stopWin   float64
-	stopLoss  float64
+	chunk             float64
+	maxAmount         float64
+	stopWin           float64
+	stopLoss          float64
+	longCloseOrderId  int64
+	shortCloseOrderId int64
 }
 
 type TradeInfo struct {
@@ -70,6 +72,173 @@ var (
 )
 
 func (g *GridStrategy) DoLong() error {
+	entryPrice, positionAmt, err := g.getEntryPriceAndAmt("LONG")
+	if err != nil {
+		return err
+	}
+
+	nowPrice, err := g.GetNewestPrice()
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+
+	fmt.Printf("做多: entryPrice: %v, positionAmt: %v\n", entryPrice, positionAmt)
+	if positionAmt > 0.0 {
+		if nowPrice > entryPrice {
+			profitRate := 100.0 * (nowPrice - entryPrice) / entryPrice
+			fmt.Printf("做多: 盈利 %f USDT, 幅度:%f%%\n", (nowPrice-entryPrice)*positionAmt, profitRate)
+		} else {
+			lossRate := 100.0 * (nowPrice - entryPrice) / entryPrice
+			fmt.Printf("做多: 亏损 %f USDT, 幅度:%f%%\n", (nowPrice-entryPrice)*positionAmt, lossRate)
+
+			if positionAmt > 0.0 && -lossRate >= g.stopLoss {
+				_, err := g.Trade(futures.SideTypeSell, 0, positionAmt, futures.PositionSideTypeLong)
+				if err != nil {
+					logger.Error(err)
+					return err
+				}
+			}
+		}
+	}
+
+	rates, err := g.GetKlines(g.Symbol, _interval, _limit+1)
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+	op := g.bottomtop(rates[:len(rates)-1])
+	fmt.Println("op:", op)
+
+	nowPrice, err = g.GetNewestPrice()
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+
+	if op == BUY {
+		if positionAmt > 0.0 {
+			n := int(positionAmt / g.chunk)
+			if n > len(Fibonacci)-1 {
+				n = len(Fibonacci) - 1
+			}
+			if positionAmt >= g.maxAmount || nowPrice > entryPrice-g.intervalPrice*Fibonacci[n] {
+				return nil
+			}
+		}
+		_, err := g.Trade(futures.SideTypeBuy, 0, g.chunk, futures.PositionSideTypeLong)
+		if err != nil {
+			logger.Error(err)
+			return err
+		}
+		g.longCloseOrderId = 0
+	}
+
+	if g.longCloseOrderId == 0 {
+		entryPrice, positionAmt, err := g.getEntryPriceAndAmt("LONG")
+		if err != nil {
+			return err
+		}
+		if positionAmt > 0.0 {
+			price := truncFloat(entryPrice*(1.0+g.stopWin/100.0), 5)
+			order, err := g.TradeLimit(futures.SideTypeSell, price, positionAmt, futures.PositionSideTypeLong)
+			if err != nil {
+				logger.Error(err)
+				return err
+			}
+			g.longCloseOrderId = order.OrderID
+		}
+	}
+
+	return nil
+}
+
+func (g *GridStrategy) DoShort() error {
+	entryPrice, positionAmt, err := g.getEntryPriceAndAmt("SHORT")
+	if err != nil {
+		return err
+	}
+
+	nowPrice, err := g.GetNewestPrice()
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+
+	positionAmt = -positionAmt
+	fmt.Printf("做空: entryPrice: %v, positionAmt: %v\n", entryPrice, positionAmt)
+
+	if positionAmt > 0.0 {
+		if nowPrice > entryPrice {
+			lossRate := 100.0 * (entryPrice - nowPrice) / entryPrice
+			fmt.Printf("做空: 亏损 %f USDT, 幅度:%f%%\n", (entryPrice-nowPrice)*positionAmt, lossRate)
+
+			if positionAmt > 0.0 && -lossRate >= g.stopLoss {
+				_, err := g.Trade(futures.SideTypeBuy, 0, positionAmt, futures.PositionSideTypeShort)
+				if err != nil {
+					logger.Error(err)
+					return err
+				}
+			}
+		} else {
+			profitRate := 100.0 * (entryPrice - nowPrice) / entryPrice
+			fmt.Printf("做空: 盈利 %f USDT, 幅度:%f%%\n", (entryPrice-nowPrice)*positionAmt, profitRate)
+		}
+	}
+
+	rates, err := g.GetKlines(g.Symbol, _interval, _limit+1)
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+	op := g.bottomtop(rates[:len(rates)-1])
+	fmt.Println("op:", op)
+
+	nowPrice, err = g.GetNewestPrice()
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+
+	if op == SELL {
+		if positionAmt > 0.0 {
+			n := int(positionAmt / g.chunk)
+			if n > len(Fibonacci)-1 {
+				n = len(Fibonacci) - 1
+			}
+			if positionAmt >= g.maxAmount || nowPrice < entryPrice+g.intervalPrice*Fibonacci[n] {
+				return nil
+			}
+		}
+		_, err := g.Trade(futures.SideTypeSell, 0, g.chunk, futures.PositionSideTypeShort)
+		if err != nil {
+			logger.Error(err)
+			return err
+		}
+		g.shortCloseOrderId = 0
+	}
+
+	if g.shortCloseOrderId == 0 {
+		entryPrice, positionAmt, err := g.getEntryPriceAndAmt("SHORT")
+		if err != nil {
+			return err
+		}
+		positionAmt = -positionAmt
+		if positionAmt > 0.0 {
+			price := truncFloat(entryPrice*(1.0-g.stopWin/100.0), 5)
+			order, err := g.TradeLimit(futures.SideTypeBuy, price, positionAmt, futures.PositionSideTypeShort)
+			if err != nil {
+				logger.Error(err)
+				return err
+			}
+			g.shortCloseOrderId = order.OrderID
+		}
+	}
+
+	return nil
+}
+
+func (g *GridStrategy) DoLong3() error {
 	long, err := g.Position(futures.PositionSideType("LONG"))
 	if err != nil {
 		logger.Error(err)
@@ -133,7 +302,11 @@ func (g *GridStrategy) DoLong() error {
 
 	if op == BUY {
 		if positionAmt > 0.0 {
-			if positionAmt >= g.maxAmount || nowPrice > entryPrice-g.intervalPrice {
+			n := int(positionAmt/g.chunk) / 2
+			if n > len(Fibonacci)-1 {
+				n = len(Fibonacci) - 1
+			}
+			if positionAmt >= g.maxAmount || nowPrice > entryPrice-g.intervalPrice*Fibonacci[n] {
 				return nil
 			}
 		}
@@ -147,7 +320,7 @@ func (g *GridStrategy) DoLong() error {
 	return nil
 }
 
-func (g *GridStrategy) DoShort() error {
+func (g *GridStrategy) DoShort3() error {
 	short, err := g.Position(futures.PositionSideType("SHORT"))
 	if err != nil {
 		logger.Error(err)
@@ -212,7 +385,11 @@ func (g *GridStrategy) DoShort() error {
 
 	if op == SELL {
 		if positionAmt > 0.0 {
-			if positionAmt >= g.maxAmount || nowPrice < entryPrice+g.intervalPrice {
+			n := int(positionAmt/g.chunk) / 2
+			if n > len(Fibonacci)-1 {
+				n = len(Fibonacci) - 1
+			}
+			if positionAmt >= g.maxAmount || nowPrice < entryPrice+g.intervalPrice*Fibonacci[n] {
 				return nil
 			}
 		}
@@ -695,16 +872,16 @@ func main() {
 	sideType := flag.String("sideType", "BUY", "sideType")
 	price := flag.Float64("price", 0.0, "price")
 	amount := flag.Float64("amount", 0.0, "amount")
-	chunk := flag.Float64("chunk", 20.0, "chunk")
-	tradeInterval := flag.Int64("tradeInterval", 40, "tradeInterval")
+	tradeInterval := flag.Int64("tradeInterval", 20, "tradeInterval")
 	maxDistance := flag.Int("maxDistance", 2, "maxDistance")
 	maxChunks := flag.Int("maxChunks", 1, "maxChunks")
 	profit := flag.Float64("profit", 0.002, "profit")
-	intervalPrice := flag.Float64("intervalPrice", 0.002, "intervalPrice")
 
+	chunk := flag.Float64("chunk", 30.0, "chunk")
+	intervalPrice := flag.Float64("intervalPrice", 0.0015, "intervalPrice")
 	maxAmount := flag.Float64("maxAmount", 200.0, "maxAmount")
-	stopWin := flag.Float64("stopWin", 0.8, "stopWin")
-	stopLoss := flag.Float64("stopLoss", 10.0, "stopLoss")
+	stopWin := flag.Float64("stopWin", 0.6, "stopWin")
+	stopLoss := flag.Float64("stopLoss", 20.0, "stopLoss")
 
 	flag.Parse()
 

@@ -523,3 +523,22 @@ func truncFloat(f float64, num int) float64 {
 	//fmt.Println(unit, a, b)
 	return b / unit
 }
+
+func (g *GridStrategy) getEntryPriceAndAmt(side string) (float64, float64, error) {
+	position, err := g.Position(futures.PositionSideType(side))
+	if err != nil {
+		logger.Error(err)
+		return 0.0, 0.0, err
+	}
+	entryPrice, err := strconv.ParseFloat(position.EntryPrice, 64)
+	if err != nil {
+		logger.Error(err)
+		return 0.0, 0.0, err
+	}
+	positionAmt, err := strconv.ParseFloat(position.PositionAmt, 64)
+	if err != nil {
+		logger.Error(err)
+		return 0.0, 0.0, err
+	}
+	return entryPrice, positionAmt, nil
+}
