@@ -148,7 +148,7 @@ func (g *GridStrategy) DoLong() error {
 			order, err := g.TradeLimit(futures.SideTypeSell, price, positionAmt, futures.PositionSideTypeLong)
 			if err != nil {
 				apiError, ok := err.(*common.APIError)
-				if ok && apiError.Code == 2022 {
+				if ok && apiError.Code == -2022 {
 					g.longCloseOrderId = 1
 				}
 				logger.Error(err)
@@ -241,7 +241,7 @@ func (g *GridStrategy) DoShort() error {
 			order, err := g.TradeLimit(futures.SideTypeBuy, price, positionAmt, futures.PositionSideTypeShort)
 			if err != nil {
 				apiError, ok := err.(*common.APIError)
-				if ok && apiError.Code == 2022 {
+				if ok && apiError.Code == -2022 {
 					g.shortCloseOrderId = 1
 				}
 				logger.Error(err)
