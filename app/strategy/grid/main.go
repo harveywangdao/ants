@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/adshao/go-binance/v2/common"
 	"github.com/adshao/go-binance/v2/futures"
 	"github.com/harveywangdao/ants/logger"
 )
@@ -116,16 +117,19 @@ func (g *GridStrategy) DoLong() error {
 		return err
 	}
 
-	if op == BUY {
-		if positionAmt > 0.0 {
-			n := int(positionAmt / g.chunk)
-			if n > len(Fibonacci)-1 {
-				n = len(Fibonacci) - 1
-			}
-			if positionAmt >= g.maxAmount || nowPrice > entryPrice-g.intervalPrice*Fibonacci[n] {
-				return nil
-			}
+	if positionAmt > 0.0 {
+		n := int(positionAmt / g.chunk)
+		if n > len(Fibonacci)-1 {
+			n = len(Fibonacci) - 1
 		}
+
+		nextPrice := entryPrice * (1 - (g.intervalPrice*Fibonacci[n])/100.0)
+		fmt.Println("next price:", nextPrice)
+		if positionAmt >= g.maxAmount || nowPrice > nextPrice {
+			op = WAIT
+		}
+	}
+	if op == BUY {
 		_, err := g.Trade(futures.SideTypeBuy, 0, g.chunk, futures.PositionSideTypeLong)
 		if err != nil {
 			logger.Error(err)
@@ -143,6 +147,10 @@ func (g *GridStrategy) DoLong() error {
 			price := truncFloat(entryPrice*(1.0+g.stopWin/100.0), 5)
 			order, err := g.TradeLimit(futures.SideTypeSell, price, positionAmt, futures.PositionSideTypeLong)
 			if err != nil {
+				apiError, ok := err.(*common.APIError)
+				if ok && apiError.Code == 2022 {
+					g.longCloseOrderId = 1
+				}
 				logger.Error(err)
 				return err
 			}
@@ -200,16 +208,20 @@ func (g *GridStrategy) DoShort() error {
 		return err
 	}
 
-	if op == SELL {
-		if positionAmt > 0.0 {
-			n := int(positionAmt / g.chunk)
-			if n > len(Fibonacci)-1 {
-				n = len(Fibonacci) - 1
-			}
-			if positionAmt >= g.maxAmount || nowPrice < entryPrice+g.intervalPrice*Fibonacci[n] {
-				return nil
-			}
+	if positionAmt > 0.0 {
+		n := int(positionAmt / g.chunk)
+		if n > len(Fibonacci)-1 {
+			n = len(Fibonacci) - 1
 		}
+
+		nextPrice := entryPrice * (1 + (g.intervalPrice*Fibonacci[n])/100.0)
+		fmt.Println("next price:", nextPrice)
+		if positionAmt >= g.maxAmount || nowPrice < nextPrice {
+			op = WAIT
+		}
+	}
+
+	if op == SELL {
 		_, err := g.Trade(futures.SideTypeSell, 0, g.chunk, futures.PositionSideTypeShort)
 		if err != nil {
 			logger.Error(err)
@@ -228,6 +240,10 @@ func (g *GridStrategy) DoShort() error {
 			price := truncFloat(entryPrice*(1.0-g.stopWin/100.0), 5)
 			order, err := g.TradeLimit(futures.SideTypeBuy, price, positionAmt, futures.PositionSideTypeShort)
 			if err != nil {
+				apiError, ok := err.(*common.APIError)
+				if ok && apiError.Code == 2022 {
+					g.shortCloseOrderId = 1
+				}
 				logger.Error(err)
 				return err
 			}
@@ -878,10 +894,10 @@ func main() {
 	profit := flag.Float64("profit", 0.002, "profit")
 
 	chunk := flag.Float64("chunk", 30.0, "chunk")
-	intervalPrice := flag.Float64("intervalPrice", 0.0015, "intervalPrice")
 	maxAmount := flag.Float64("maxAmount", 200.0, "maxAmount")
-	stopWin := flag.Float64("stopWin", 0.6, "stopWin")
-	stopLoss := flag.Float64("stopLoss", 20.0, "stopLoss")
+	intervalPrice := flag.Float64("intervalPrice", 0.5, "intervalPrice %")
+	stopWin := flag.Float64("stopWin", 1.0, "stopWin %")
+	stopLoss := flag.Float64("stopLoss", 20.0, "stopLoss %")
 
 	flag.Parse()
 
