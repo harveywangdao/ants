@@ -93,7 +93,7 @@ func (g *GridStrategy) DoLong() error {
 			lossRate := 100.0 * (nowPrice - entryPrice) / entryPrice
 			fmt.Printf("做多: 亏损 %f USDT, 幅度:%f%%\n", (nowPrice-entryPrice)*positionAmt, lossRate)
 
-			if positionAmt > 0.0 && -lossRate >= g.stopLoss {
+			if -lossRate >= g.stopLoss {
 				_, err := g.Trade(futures.SideTypeSell, 0, positionAmt, futures.PositionSideTypeLong)
 				if err != nil {
 					logger.Error(err)
@@ -128,6 +128,8 @@ func (g *GridStrategy) DoLong() error {
 		if positionAmt >= g.maxAmount || nowPrice > nextPrice {
 			op = WAIT
 		}
+	} else {
+		op = BUY
 	}
 	if op == BUY {
 		_, err := g.Trade(futures.SideTypeBuy, 0, g.chunk, futures.PositionSideTypeLong)
@@ -181,7 +183,7 @@ func (g *GridStrategy) DoShort() error {
 			lossRate := 100.0 * (entryPrice - nowPrice) / entryPrice
 			fmt.Printf("做空: 亏损 %f USDT, 幅度:%f%%\n", (entryPrice-nowPrice)*positionAmt, lossRate)
 
-			if positionAmt > 0.0 && -lossRate >= g.stopLoss {
+			if -lossRate >= g.stopLoss {
 				_, err := g.Trade(futures.SideTypeBuy, 0, positionAmt, futures.PositionSideTypeShort)
 				if err != nil {
 					logger.Error(err)
@@ -219,6 +221,8 @@ func (g *GridStrategy) DoShort() error {
 		if positionAmt >= g.maxAmount || nowPrice < nextPrice {
 			op = WAIT
 		}
+	} else {
+		op = SELL
 	}
 
 	if op == SELL {
