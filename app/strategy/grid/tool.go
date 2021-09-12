@@ -319,6 +319,20 @@ func (g *GridStrategy) GetOpenOrders() (map[int64]*futures.Order, error) {
 	return m, nil
 }
 
+func (g *GridStrategy) GetOpenOrders2() (map[string]*futures.Order, error) {
+	trades, err := g.client.NewListOpenOrdersService().Symbol(g.Symbol).Do(context.Background())
+	if err != nil {
+		logger.Error(err)
+		return nil, err
+	}
+	m := make(map[string]*futures.Order)
+	for i := 0; i < len(trades); i++ {
+		s := fmt.Sprintf("%s-%s-%s-%s", trades[i].Symbol, trades[i].PositionSide, trades[i].Side, trades[i].OrigQuantity)
+		m[s] = trades[i]
+	}
+	return m, nil
+}
+
 func (g *GridStrategy) GetKlines(symbol, interval string, limit int) ([]KlineData, error) {
 	// 1m 3m 5m 15m 30m 1h 2h 4h 6h 8h 12h 1d 3d 1w 1M
 	klines, err := g.client.NewKlinesService().Symbol(symbol).Interval(interval).Limit(limit).Do(context.Background())
