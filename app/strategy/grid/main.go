@@ -49,6 +49,9 @@ type GridStrategy struct {
 	maxAmount float64
 	stopWin   float64
 	stopLoss  float64
+
+	pricePrecision  int
+	amountPrecision int
 }
 
 type TradeInfo struct {
@@ -146,10 +149,10 @@ func (g *GridStrategy) DoLong() error {
 		if err != nil {
 			return err
 		}
-		s := fmt.Sprintf("%s-%s-%s-%.0f", g.Symbol, futures.PositionSideTypeLong, futures.SideTypeSell, positionAmt)
+		s := fmt.Sprintf("%s-%s-%s-%."+strconv.Itoa(g.amountPrecision)+"f", g.Symbol, futures.PositionSideTypeLong, futures.SideTypeSell, positionAmt)
 		_, ok := om[s]
 		if !ok {
-			price := truncFloat(entryPrice*(1.0+g.stopWin/100.0), 5)
+			price := truncFloat(entryPrice*(1.0+g.stopWin/100.0), g.pricePrecision)
 			_, err := g.TradeLimit(futures.SideTypeSell, price, positionAmt, futures.PositionSideTypeLong)
 			if err != nil {
 				logger.Error(err)
@@ -241,10 +244,10 @@ func (g *GridStrategy) DoShort() error {
 		if err != nil {
 			return err
 		}
-		s := fmt.Sprintf("%s-%s-%s-%.0f", g.Symbol, futures.PositionSideTypeShort, futures.SideTypeBuy, positionAmt)
+		s := fmt.Sprintf("%s-%s-%s-%."+strconv.Itoa(g.amountPrecision)+"f", g.Symbol, futures.PositionSideTypeShort, futures.SideTypeBuy, positionAmt)
 		_, ok := om[s]
 		if !ok {
-			price := truncFloat(entryPrice*(1.0-g.stopWin/100.0), 5)
+			price := truncFloat(entryPrice*(1.0-g.stopWin/100.0), g.pricePrecision)
 			_, err := g.TradeLimit(futures.SideTypeBuy, price, positionAmt, futures.PositionSideTypeShort)
 			if err != nil {
 				logger.Error(err)
@@ -900,21 +903,26 @@ func main() {
 	stopWin := flag.Float64("stopWin", 1.0, "stopWin %")
 	stopLoss := flag.Float64("stopLoss", 20.0, "stopLoss %")
 
+	pricePrecision := flag.Int("pricePrecision", 5, "pricePrecision")
+	amountPrecision := flag.Int("amountPrecision", 0, "amountPrecision")
+
 	flag.Parse()
 
 	grid := &GridStrategy{
-		client:        futures.NewClient(ApiKey, SecretKey),
-		Symbol:        *symbol,
-		PositionSide:  *positionSide,
-		tradeInterval: *tradeInterval, //间隔
-		chunk:         *chunk,         //单元数量
-		maxDistance:   *maxDistance,   //做多做空最大单元距离
-		maxChunks:     *maxChunks,     //最大单元
-		profit:        *profit,
-		intervalPrice: *intervalPrice,
-		maxAmount:     *maxAmount,
-		stopWin:       *stopWin,
-		stopLoss:      *stopLoss,
+		client:          futures.NewClient(ApiKey, SecretKey),
+		Symbol:          *symbol,
+		PositionSide:    *positionSide,
+		tradeInterval:   *tradeInterval, //间隔
+		chunk:           *chunk,         //单元数量
+		maxDistance:     *maxDistance,   //做多做空最大单元距离
+		maxChunks:       *maxChunks,     //最大单元
+		profit:          *profit,
+		intervalPrice:   *intervalPrice,
+		maxAmount:       *maxAmount,
+		stopWin:         *stopWin,
+		stopLoss:        *stopLoss,
+		pricePrecision:  *pricePrecision,
+		amountPrecision: *amountPrecision,
 	}
 
 	if *action == "cancel" {
