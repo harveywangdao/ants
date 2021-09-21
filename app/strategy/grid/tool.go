@@ -327,7 +327,12 @@ func (g *GridStrategy) GetOpenOrders2() (map[string]*futures.Order, error) {
 	}
 	m := make(map[string]*futures.Order)
 	for i := 0; i < len(trades); i++ {
-		s := fmt.Sprintf("%s-%s-%s-%s", trades[i].Symbol, trades[i].PositionSide, trades[i].Side, trades[i].OrigQuantity)
+		positionAmt, err := strconv.ParseFloat(trades[i].OrigQuantity, 64)
+		if err != nil {
+			logger.Error(err)
+			return nil, err
+		}
+		s := fmt.Sprintf("%s-%s-%s-%."+strconv.Itoa(g.amountPrecision)+"f", trades[i].Symbol, trades[i].PositionSide, trades[i].Side, positionAmt)
 		m[s] = trades[i]
 	}
 	return m, nil
