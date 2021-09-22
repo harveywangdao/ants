@@ -847,13 +847,13 @@ func (g *GridStrategy) RunTask() error {
 		nowPrice, err := g.GetNewestPrice()
 		if err != nil {
 			logger.Error(err)
-			return err
+			continue
 		}
 		fmt.Printf("%s now price: %v\n", g.Symbol, nowPrice)
 		availableBalance, err := g.GetAvailableBalance("USDT")
 		if err != nil {
 			logger.Error(err)
-			return err
+			continue
 		}
 		fmt.Printf("available balance: %v\n\n", availableBalance)
 
@@ -871,7 +871,7 @@ func (g *GridStrategy) RunTask() error {
 			rates, err := g.GetKlines(g.Symbol, _interval, _limit)
 			if err != nil {
 				logger.Error(err)
-				return err
+				continue
 			}
 			op := g.bottomtop(rates)
 			logger.Info("op:", op)
