@@ -69,7 +69,8 @@ type TradeInfo struct {
 }
 
 var (
-	Fibonacci = []float64{1.0, 1.0, 2.0, 3.0, 5.0, 8.0, 13.0, 21.0, 34.0}
+	//Fibonacci = []float64{1.0, 1.0, 2.0, 3.0, 5.0, 8.0, 13.0, 21.0, 34.0}
+	Fibonacci = []float64{1.0, 1.0, 1.0, 2.0, 2.0, 2.0, 3.0, 4.0, 5.0}
 )
 
 func (g *GridStrategy) DoLong() error {
